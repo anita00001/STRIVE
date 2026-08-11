@@ -297,7 +297,7 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
                 # rollout
                 init_non_ego = model.normalizer.unnormalize(init_fit_traj[~ego_mask]).cpu().numpy()
                 plan_t = np.linspace(model.dt, model.dt*model.FT, model.FT)
-                init_agt_ptr = scene_graph.ptr - torch.arange(B+1)
+                init_agt_ptr = scene_graph.ptr - torch.arange(B+1, device=scene_graph.ptr.device)
                 planner_init = planner.rollout(init_non_ego, plan_t, init_agt_ptr.cpu().numpy(), plan_t,
                                                 control_all=False).to(scene_graph.future_gt)
                 planner_init = model.get_normalizer().normalize(planner_init)
@@ -320,7 +320,7 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
                                                                     )
                     bvalid.append(np.sum(init_hardcode_coll) == 0)
 
-                bvalid = np.array(bvalid, dtype=np.bool)
+                bvalid = np.array(bvalid, dtype=bool)
                 if np.sum(bvalid) < B:
                     Logger.log('Planner already caused collision after init, removing from batch...')
                     if np.sum(bvalid) == 0:
@@ -331,7 +331,7 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
                     map_idx = map_idx[bvalid]
                     cur_batch_i = [bi for b, bi in enumerate(cur_batch_i) if bvalid[b]]
 
-                    avalid = np.zeros((NA), dtype=np.bool) # which agents are part of new graphs
+                    avalid = np.zeros((NA), dtype=bool) # which agents are part of new graphs
                     for b in range(B):
                         if bvalid[b]:
                             avalid[scene_graph.ptr[b]:scene_graph.ptr[b+1]] = True
@@ -389,7 +389,10 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
             attack_t = cur_min_t
 
             adv_succeeded = []
-            other_ptr = scene_graph.ptr - torch.arange(len(scene_graph.ptr))
+            other_ptr = scene_graph.ptr - torch.arange(
+                len(scene_graph.ptr),
+    		device=scene_graph.ptr.device
+            )
             for b in range(B):
                 cur_adv_succeeded = compute_adv_gen_success(final_result_traj[scene_graph.ptr[b]:scene_graph.ptr[b+1]],
                                                     model,

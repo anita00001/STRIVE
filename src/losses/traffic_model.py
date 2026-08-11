@@ -493,7 +493,7 @@ def compute_coll_rate_veh(scene_graph, pred, state_normalizer, att_normalizer):
     veh_att = veh_att.cpu().numpy()
     pairs = scene_graph.edge_index.cpu().numpy().T
 
-    veh_coll = np.zeros((NA, NS), dtype=np.bool)
+    veh_coll = np.zeros((NA, NS), dtype=bool)
     poly_cache = dict()    
     # loop over every timestep in every sample for this combination
     coll_count = 0

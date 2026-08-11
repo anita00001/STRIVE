@@ -98,7 +98,10 @@ def run_adv_gen_optim(cur_z, lr, loss_weights, model, scene_graph, map_env, map_
         planner_inject_traj = False
         adv_use_own_pred = True
 
-        cur_agt_ptr = scene_graph.ptr - torch.arange(B+1)
+        cur_agt_ptr = scene_graph.ptr - torch.arange(
+    	    B + 1,
+    	    device=scene_graph.ptr.device
+	)
         plan_t = np.linspace(model.dt, model.dt*future_len, future_len)
 
     # run optim

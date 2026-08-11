@@ -150,3 +150,7 @@ storage/
 #*.png
 
 *map_storage/
+data/maps/basemap/boston-seaport.png
+data/maps/basemap/singapore-hollandvillage.png
+data/maps/basemap/singapore-onenorth.png
+data/maps/basemap/singapore-queenstown.png

@@ -315,7 +315,7 @@ def get_lane_matches(x, y, h, lane_graph, cdistmax, xydistmax):
     else:
         all_matches = {
             'closest': np.empty((0, 2)),
-            'ixes': np.empty((0, 2), dtype=np.int64),
+            'ixes': np.empty((0, 2), dtype=int64),
         }
 
     return all_matches

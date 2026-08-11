@@ -255,9 +255,9 @@ class AdvGenLoss(nn.Module):
         # output attacking agent and time if not set ahead of time
         if return_mins:
             if cur_min_agt is not None:
-                loss_out['min_agt'] = np.array(cur_min_agt, dtype=np.int)
+                loss_out['min_agt'] = np.array(cur_min_agt, dtype=int)
             if cur_min_t is not None:
-                loss_out['min_t'] = np.array(cur_min_t, dtype=np.int)
+                loss_out['min_t'] = np.array(cur_min_t, dtype=int)
 
         return loss_out
 
@@ -537,8 +537,8 @@ def check_single_veh_coll(traj_tgt, lw_tgt, traj_others, lw_others):
     traj_others = traj_others.cpu().numpy()
     lw_others = lw_others.cpu().numpy()
 
-    veh_coll = np.zeros((NA), dtype=np.bool)
-    coll_time = np.ones((NA), dtype=np.int)*FT
+    veh_coll = np.zeros((NA), dtype=bool)
+    coll_time = np.ones((NA), dtype=int)*FT
     poly_cache = dict() # for the tgt polygons since used many times
     for aj in range(NA):
         for t in range(FT):
@@ -582,7 +582,7 @@ def check_pairwise_veh_coll(traj, lw):
     traj = traj.cpu().numpy()
     lw = lw.cpu().numpy()
 
-    veh_coll = np.zeros((NA), dtype=np.bool)
+    veh_coll = np.zeros((NA), dtype=bool)
     poly_cache = dict()    
     # loop over every timestep in every sample for this combination
     coll_count = 0

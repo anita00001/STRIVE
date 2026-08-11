@@ -1,0 +1,4 @@
+data/maps/basemap/boston-seaport.png filter=lfs diff=lfs merge=lfs -text
+data/maps/basemap/singapore-hollandvillage.png filter=lfs diff=lfs merge=lfs -text
+data/maps/basemap/singapore-onenorth.png filter=lfs diff=lfs merge=lfs -text
+data/maps/basemap/singapore-queenstown.png filter=lfs diff=lfs merge=lfs -text

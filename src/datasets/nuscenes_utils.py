@@ -156,15 +156,15 @@ def heading_change_rate(h, t):
     hdot = np.append(hdiff[0:1], hdiff) # for first frame use forward diff
 
     # for any nan -> value transition frames, want to use forward difference
-    hnan = np.isnan(h).astype(np.int)
+    hnan = np.isnan(h).astype(int)
     if np.sum(hnan) == 0:
         return hdot
     lead_nans = (hnan[1:] - hnan[:-1]) == -1
     lead_nans = np.append([False], lead_nans)
     repl_idx = np.append([False], lead_nans[:-1])
-    num_fill = np.sum(repl_idx.astype(np.int))
+    num_fill = np.sum(repl_idx.astype(int))
     if num_fill != 0:
-        if num_fill != np.sum(lead_nans.astype(np.int)):
+        if num_fill != np.sum(lead_nans.astype(int)):
             # the last frame is a leading nan, have to ignore it
             lead_nans[-1] = False
         hdot[lead_nans] = hdot[repl_idx]
@@ -184,15 +184,15 @@ def velocity(pos, t):
     vel = np.concatenate([vel_diff[0:1,:], vel_diff], axis=0) # for first frame use forward diff
 
     # for any nan -> value transition frames, want to use forward difference
-    posnan = np.isnan(np.sum(pos, axis=1)).astype(np.int)
+    posnan = np.isnan(np.sum(pos, axis=1)).astype(int)
     if np.sum(posnan) == 0:
         return vel
     lead_nans = (posnan[1:] - posnan[:-1]) == -1
     lead_nans = np.append([False], lead_nans)
     repl_idx = np.append([False], lead_nans[:-1])
-    num_fill = np.sum(repl_idx.astype(np.int))
+    num_fill = np.sum(repl_idx.astype(int))
     if num_fill != 0:
-        if num_fill != np.sum(lead_nans.astype(np.int)):
+        if num_fill != np.sum(lead_nans.astype(int)):
             # the last frame is a leading nan, have to ignore it
             lead_nans[-1] = False
         vel[lead_nans] = vel[repl_idx]
@@ -661,7 +661,7 @@ def viz_map_crop(x, out_path, car_kin=None, car_lw=None, gt_kin=None, viz_traj=F
     :param car_lw: attributes length, width (NA x 2)
     '''
     def style_ax():
-        plt.grid(b=None)
+        plt.grid(False)
         plt.xticks([])
         plt.yticks([])
 

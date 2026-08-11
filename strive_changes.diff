@@ -1,0 +1,149 @@
+diff --git a/requirements.txt b/requirements.txt
+index 9316619..13667a2 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,14 +1,14 @@
+-numpy==1.19.5
+---find-links https://download.pytorch.org/whl/torch_stable.html
+-torch==1.9.0+cu111 
+-torchvision==0.10.0+cu111
+-torchaudio==0.9.0
+-matplotlib==3.3.4
+-pyyaml==5.4.1
+-wandb==0.10.32
+-ConfigArgParse==1.5
+---find-links https://pytorch-geometric.com/whl/torch-1.9.0+cu111.html
+-torch-scatter==2.0.7
+-torch-sparse==0.6.10
+-torch-geometric==1.7.1
++numpy==1.26.4
++
++torch
++torchvision
++torchaudio
++
++matplotlib==3.7.5
++pyyaml==6.0.1
++wandb==0.16.6
++ConfigArgParse==1.7
++
++torch-geometric
++
+ nuscenes-devkit==1.1.5
+diff --git a/src/adv_scenario_gen.py b/src/adv_scenario_gen.py
+index 0a5b483..1fc4e27 100644
+--- a/src/adv_scenario_gen.py
++++ b/src/adv_scenario_gen.py
+@@ -297,7 +297,7 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
+                 # rollout
+                 init_non_ego = model.normalizer.unnormalize(init_fit_traj[~ego_mask]).cpu().numpy()
+                 plan_t = np.linspace(model.dt, model.dt*model.FT, model.FT)
+-                init_agt_ptr = scene_graph.ptr - torch.arange(B+1)
++                init_agt_ptr = scene_graph.ptr - torch.arange(B+1, device=scene_graph.ptr.device)
+                 planner_init = planner.rollout(init_non_ego, plan_t, init_agt_ptr.cpu().numpy(), plan_t,
+                                                 control_all=False).to(scene_graph.future_gt)
+                 planner_init = model.get_normalizer().normalize(planner_init)
+@@ -320,7 +320,7 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
+                                                                     )
+                     bvalid.append(np.sum(init_hardcode_coll) == 0)
+ 
+-                bvalid = np.array(bvalid, dtype=np.bool)
++                bvalid = np.array(bvalid, dtype=bool)
+                 if np.sum(bvalid) < B:
+                     Logger.log('Planner already caused collision after init, removing from batch...')
+                     if np.sum(bvalid) == 0:
+@@ -331,7 +331,7 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
+                     map_idx = map_idx[bvalid]
+                     cur_batch_i = [bi for b, bi in enumerate(cur_batch_i) if bvalid[b]]
+ 
+-                    avalid = np.zeros((NA), dtype=np.bool) # which agents are part of new graphs
++                    avalid = np.zeros((NA), dtype=bool) # which agents are part of new graphs
+                     for b in range(B):
+                         if bvalid[b]:
+                             avalid[scene_graph.ptr[b]:scene_graph.ptr[b+1]] = True
+@@ -389,7 +389,10 @@ def run_one_epoch(data_loader, batch_size, model, map_env, device, out_path, los
+             attack_t = cur_min_t
+ 
+             adv_succeeded = []
+-            other_ptr = scene_graph.ptr - torch.arange(len(scene_graph.ptr))
++            other_ptr = scene_graph.ptr - torch.arange(
++                len(scene_graph.ptr),
++    		device=scene_graph.ptr.device
++            )
+             for b in range(B):
+                 cur_adv_succeeded = compute_adv_gen_success(final_result_traj[scene_graph.ptr[b]:scene_graph.ptr[b+1]],
+                                                     model,
+diff --git a/src/datasets/nuscenes_utils.py b/src/datasets/nuscenes_utils.py
+index eb45234..23f7207 100644
+--- a/src/datasets/nuscenes_utils.py
++++ b/src/datasets/nuscenes_utils.py
+@@ -156,15 +156,15 @@ def heading_change_rate(h, t):
+     hdot = np.append(hdiff[0:1], hdiff) # for first frame use forward diff
+ 
+     # for any nan -> value transition frames, want to use forward difference
+-    hnan = np.isnan(h).astype(np.int)
++    hnan = np.isnan(h).astype(int)
+     if np.sum(hnan) == 0:
+         return hdot
+     lead_nans = (hnan[1:] - hnan[:-1]) == -1
+     lead_nans = np.append([False], lead_nans)
+     repl_idx = np.append([False], lead_nans[:-1])
+-    num_fill = np.sum(repl_idx.astype(np.int))
++    num_fill = np.sum(repl_idx.astype(int))
+     if num_fill != 0:
+-        if num_fill != np.sum(lead_nans.astype(np.int)):
++        if num_fill != np.sum(lead_nans.astype(int)):
+             # the last frame is a leading nan, have to ignore it
+             lead_nans[-1] = False
+         hdot[lead_nans] = hdot[repl_idx]
+@@ -184,15 +184,15 @@ def velocity(pos, t):
+     vel = np.concatenate([vel_diff[0:1,:], vel_diff], axis=0) # for first frame use forward diff
+ 
+     # for any nan -> value transition frames, want to use forward difference
+-    posnan = np.isnan(np.sum(pos, axis=1)).astype(np.int)
++    posnan = np.isnan(np.sum(pos, axis=1)).astype(int)
+     if np.sum(posnan) == 0:
+         return vel
+     lead_nans = (posnan[1:] - posnan[:-1]) == -1
+     lead_nans = np.append([False], lead_nans)
+     repl_idx = np.append([False], lead_nans[:-1])
+-    num_fill = np.sum(repl_idx.astype(np.int))
++    num_fill = np.sum(repl_idx.astype(int))
+     if num_fill != 0:
+-        if num_fill != np.sum(lead_nans.astype(np.int)):
++        if num_fill != np.sum(lead_nans.astype(int)):
+             # the last frame is a leading nan, have to ignore it
+             lead_nans[-1] = False
+         vel[lead_nans] = vel[repl_idx]
+@@ -661,7 +661,7 @@ def viz_map_crop(x, out_path, car_kin=None, car_lw=None, gt_kin=None, viz_traj=F
+     :param car_lw: attributes length, width (NA x 2)
+     '''
+     def style_ax():
+-        plt.grid(b=None)
++        plt.grid(False)
+         plt.xticks([])
+         plt.yticks([])
+ 
+diff --git a/src/utils/adv_gen_optim.py b/src/utils/adv_gen_optim.py
+index 847ccc0..6a6b166 100644
+--- a/src/utils/adv_gen_optim.py
++++ b/src/utils/adv_gen_optim.py
+@@ -98,7 +98,10 @@ def run_adv_gen_optim(cur_z, lr, loss_weights, model, scene_graph, map_env, map_
+         planner_inject_traj = False
+         adv_use_own_pred = True
+ 
+-        cur_agt_ptr = scene_graph.ptr - torch.arange(B+1)
++        cur_agt_ptr = scene_graph.ptr - torch.arange(
++    	    B + 1,
++    	    device=scene_graph.ptr.device
++	)
+         plan_t = np.linspace(model.dt, model.dt*future_len, future_len)
+ 
+     # run optim
+@@ -232,4 +235,4 @@ def compute_adv_gen_success(final_result_traj, model, scene_graph, attack_agt):
+     attack_coll = planner_coll_all[attack_agt-1]
+     adv_success = bool(attack_coll)
+ 
+-    return adv_success
+\ No newline at end of file
++    return adv_success

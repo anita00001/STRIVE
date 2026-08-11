@@ -450,7 +450,7 @@ class NuScenesDataset(Dataset):
             # form state and record valid frames
             ego_traj = np.concatenate([ego_x, ego_s, ego_hdot], axis=1)
             ego_accel = np.concatenate([ego_a, ego_ddh], axis=1)
-            ego_is_vis = np.logical_not(np.isnan(ego_s.flatten())).astype(np.int)
+            ego_is_vis = np.logical_not(np.isnan(ego_s.flatten())).astype(int)
             # vehicle attributes
             ego_lw = np.array([ego_data['l'], ego_data['w']])
 
@@ -464,7 +464,7 @@ class NuScenesDataset(Dataset):
                     'traj' : np.concatenate([np.ones((nadd_steps, 6))*np.nan, ego_traj], axis=0),
                     'accel' : np.concatenate([np.ones((nadd_steps, 2))*np.nan, ego_accel], axis=0),
                     'lw' :  ego_lw,
-                    'is_vis' : np.concatenate([np.zeros((nadd_steps), dtype=np.int), ego_is_vis], axis=0),
+                    'is_vis' : np.concatenate([np.zeros((nadd_steps), dtype=int), ego_is_vis], axis=0),
                     'k' : 'ego',
                 }
             else:
@@ -546,7 +546,7 @@ class NuScenesDataset(Dataset):
                 # some position values might be available while vel is nan
                 #       (when single random frame shows up)
                 cur_x[no_vis] = np.nan
-                is_vis = np.logical_not(no_vis).astype(np.float)
+                is_vis = np.logical_not(no_vis).astype(float)
                 traj = np.concatenate([cur_x, s, hdot], axis=1)
                 accel = np.concatenate([a, ddh], axis=1)
 
@@ -557,7 +557,7 @@ class NuScenesDataset(Dataset):
                         'traj' : np.concatenate([np.ones((nadd_steps, 6))*np.nan, traj], axis=0),
                         'accel' : np.concatenate([np.ones((nadd_steps, 2))*np.nan, accel], axis=0),
                         'lw' :  lw,
-                        'is_vis' : np.concatenate([np.zeros((nadd_steps), dtype=np.int), is_vis], axis=0),
+                        'is_vis' : np.concatenate([np.zeros((nadd_steps), dtype=int), is_vis], axis=0),
                         'k' : data[scene][name]['k']
                     }
                 else:
@@ -619,7 +619,7 @@ class NuScenesDataset(Dataset):
             # prepend data for the agent we're making a prediction for
             # so ego is not at 0, challenge data is
             agent_data = self.data[scene_name][inst_tok]
-            assert(np.isnan(agent_data['traj'][midx-1]).astype(np.int).sum() == 0) # should not be nan if we're making a prediction for it
+            assert(np.isnan(agent_data['traj'][midx-1]).astype(int).sum() == 0) # should not be nan if we're making a prediction for it
             past = [agent_data['traj'][sidx:midx, :]] + past
             future = [agent_data['traj'][midx:eidx, :]] + future
             sem = [self.cat2vec[agent_data['k']]] + sem # one-hot vec
@@ -633,7 +633,7 @@ class NuScenesDataset(Dataset):
             if self.use_challenge_splits and agent == inst_tok:
                 continue
             agent_data = self.data[scene_name][agent]
-            if np.isnan(agent_data['traj'][midx-1]).astype(np.int).sum() > 0:
+            if np.isnan(agent_data['traj'][midx-1]).astype(int).sum() > 0:
                 continue
             if self.require_full_past and np.isnan(agent_data['traj'][:midx]).sum() > 0:
                 # has some nan in past
