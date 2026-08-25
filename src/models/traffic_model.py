@@ -154,10 +154,16 @@ class TrafficModel(nn.Module):
         #
 
         # past encoder
-        self.past_feat_size = past_feat_size
+        self.past_feat_size = past_feat_size    #default = 64     see line 26
         if self.traj_encoder_type == 'mlp':
             self.past_in_size = self.NC + self.PT*(self.state_size + self.att_feat_size + 1) # +1 from visibility flag
-            self.past_encoder = MLP([self.past_in_size, 128, 128, 128, self.past_feat_size])
+                    '''
+                           = NC + PT*(6+2+1)
+                           = NC + PT*9
+                           = 2  + 4*9        default NC=2  see line 49,     default PT=4  see line 47
+                           = 38
+                    '''
+            self.past_encoder = MLP([self.past_in_size, 128, 128, 128, self.past_feat_size])     # MLP([38,128,128,128,64])
         elif self.traj_encoder_type == 'gru':
             self.past_in_size = self.NC + self.state_size + self.att_feat_size + 1 # +1 from visibility flag
             self.past_encoder = nn.GRU(self.past_in_size,
