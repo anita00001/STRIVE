@@ -40,11 +40,13 @@ class TrafficModel(nn.Module):
         :param nclasses: number of different semantic classes
         '''
         super(TrafficModel, self).__init__()
-        self.normalizer = self.att_normalizer = None # normalizer for state and vehicle attributes
-        self.PT = npast
-        self.FT = nfuture
-        self.dt = 0.5 # for nusc dataset
-        self.NC = nclasses
+        self.normalizer = self.att_normalizer = None # normalizer for state and vehicle attributes;
+                     # six states = (x,y,hx,hy,s,hdot),
+                     # two vehicle attributes = (length, width) of vehicles
+        self.PT = npast   # npast = 4, use previous 4 steps 
+        self.FT = nfuture    # nfuture = 12, predict next 12 steps
+        self.dt = 0.5 # for nusc dataset # 4 previous states = 4*0.5 = 2sec, 12 predicted state = 12*0.5 = 6 sec
+        self.NC = nclasses     # no. of agent's categories/types , default nclasses = 2; cfg.agent_types = ['car', 'truck']
         self.output_bicycle = output_bicycle
         if self.output_bicycle:
             self.bicycle_params = None
@@ -53,7 +55,7 @@ class TrafficModel(nn.Module):
         self.state_size = 6 #(x,y,hx,hy,s,hdot)
         self.att_feat_size = 2 #(l,w)
 
-        self.traj_encoder_type = traj_encoder
+        self.traj_encoder_type = traj_encoder    # default = 'mlp' refer line 30
         if self.traj_encoder_type not in TRAJ_ENCODER_CHOICES:
             throw_err('Trajectory encoder type %s not recognized!' % (self.traj_encoder_type))
         else:
@@ -62,30 +64,91 @@ class TrafficModel(nn.Module):
         #
         # Map encoding
         #
-        self.mapH = map_obs_size_pix
-        self.mapW = map_obs_size_pix
+        self.mapH = map_obs_size_pix    # default map_obs_size_pix = 256    # height = 256 pixels
+        self.mapW = map_obs_size_pix    # default map_obs_size_pix = 256    # width = 256 pixels
         self.map_obs_size_pix = map_obs_size_pix
 
-        conv_layer_list = []
-        final_conv_out = map_obs_size_pix
+        conv_layer_list = []    # initial convolution layer list is empty
+        final_conv_out = map_obs_size_pix    # default = 256
         assert len(conv_kernel_list) == len(conv_stride_list)
         assert len(conv_kernel_list) == len(conv_filter_list)
-        conv_filter_list = [conv_channel_in] + conv_filter_list
-        for lidx in range(len(conv_kernel_list)):
+        conv_filter_list = [conv_channel_in] + conv_filter_list    # [4] + [16, 32, 64, 64, 128, 128] = [4, 16, 32, 64, 64, 128]
+                     # input convolution channels  = [4, 16, 32, 64, 64, 128]
+                     # output convolution channels = [16, 32, 64, 64, 128, 128]
+                     '''
+                        4   → 16
+                        16  → 32
+                        32  → 64
+                        64  → 64
+                        64  → 128
+                        128 → 128
+                     '''
+        for lidx in range(len(conv_kernel_list)):    # range = 6    # layer index lidx = 0, 1, 2, 3, 4, 5
             cur_conv = nn.Conv2d(conv_filter_list[lidx],
                                  conv_filter_list[lidx+1],
                                  kernel_size=conv_kernel_list[lidx],
                                  stride=conv_stride_list[lidx],
                                  padding=0)
+                '''
+                cur_conv = Conv2d(4,16,7x7,2x2,0),
+                           Conv2d(16,32,5x5,2x2,0),
+                           Conv2d(32,64,5x5,2x2,0),
+                           Conv2d(64,64,3x3,2x2,0),
+                           Conv2d(64,128,3x3,2x2,0),
+                           Conv2d(128,128,3x3,2x2,0)
+                           
+                 nn.Conv2d(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding
+                )
+                '''
+            
             cur_gn = nn.GroupNorm(1, conv_filter_list[lidx+1])
-            conv_layer_list.extend([cur_conv, cur_gn, nn.ReLU()])
+            '''
+            cur_gn = GroupNorm(1,16),
+                     GroupNorm(1,32),
+                     GroupNorm(1,64),
+                     GroupNorm(1,64),
+                     GroupNorm(1,128),
+                     GroupNorm(1,128)
+            '''
+            conv_layer_list.extend([cur_conv, cur_gn, nn.ReLU()])      # ReLU = max(0,x)
             final_conv_out = calc_conv_out(final_conv_out, conv_kernel_list[lidx], conv_stride_list[lidx])
+                            '''
+                            ((256-7-0)/2)+1 = 125
+                            ((125-5-0)/2)+1 = 61
+                            ((61-5-0)/2)+1 = 29
+                            ((29-3-0)/2)+1 = 14
+                            ((14-3-0)/2)+1 = 6
+                            ((6-3-0)/2)+1 = 2
+                            '''
+            '''
+                final_conv_out = 2
+            '''
+            # end of for loop
 
         self.map_conv = nn.Sequential(*conv_layer_list)
-        self.map_feat_in_size = conv_filter_list[-1] * final_conv_out * final_conv_out
-        self.map_feat_out_size = map_feat_size
-        self.map_feature = nn.Linear(self.map_feat_in_size, self.map_feat_out_size)
-
+                                '''
+                                     (
+                                        [Conv2d(4,16,7x7,2x2,0),   GroupNorm(1,16),  ReLU()],
+                                        [Conv2d(16,32,5x5,2x2,0),  GroupNorm(1,32),  ReLU()],
+                                        [Conv2d(32,64,5x5,2x2,0),  GroupNorm(1,64),  ReLU()],
+                                        [Conv2d(64,64,3x3,2x2,0),  GroupNorm(1,64),  ReLU()],
+                                        [Conv2d(64,128,3x3,2x2,0), GroupNorm(1,128), ReLU()],
+                                       [Conv2d(128,128,3x3,2x2,0), GroupNorm(1,128), ReLU()]
+                                     )
+                                '''
+        self.map_feat_in_size = conv_filter_list[-1] * final_conv_out * final_conv_out     # 128*2*2 = 512
+        self.map_feat_out_size = map_feat_size            # 64 line 25
+        self.map_feature = nn.Linear(self.map_feat_in_size, self.map_feat_out_size)        # nn.Linear(512,64)
+             '''
+                           y = Wx + b
+             parameter count = 64*512 + 64
+                             = 32832
+              '''
         #
         # Motion encoding
         #
