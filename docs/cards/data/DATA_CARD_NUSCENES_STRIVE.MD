@@ -173,17 +173,45 @@ reconstructing scenes.
 
 ## 10. Dataset Splits
 
-The paper reports that traffic-model training uses the nuScenes prediction
-challenge training split.
+### Paper-reported training split
 
-The public implementation also supports train, validation, and test-style split
-handling.
+The STRIVE paper reports that the learned traffic model is trained using
+trajectory data from the nuScenes prediction challenge training split.
 
-Exact sample counts used for the released traffic-model checkpoint are:
+### Public repository behavior
 
-**TBD / not yet independently verified.**
+The public STRIVE implementation supports the official nuScenes prediction
+challenge splits through the `use_challenge_splits` option.
 
-The following should be computed or recovered where possible:
+However, in the current public repository configuration:
+
+`configs/train_traffic.cfg`
+
+does not explicitly enable `use_challenge_splits`.
+
+The shared configuration parser defines:
+
+`use_challenge_splits = False`
+
+by default.
+
+Therefore, the paper-reported training split and the default behavior of the
+current public training configuration must be documented separately.
+
+The exact split used to produce the released pretrained checkpoint has not yet
+been independently verified from checkpoint metadata.
+
+### Split implementation
+
+`NuScenesDataset` supports:
+
+- `train`
+- `val`
+- `test`
+
+and contains separate handling for the nuScenes prediction challenge splits.
+
+Exact sequence and agent counts will be computed using the profiling script.
 
 | Split | Source scenes | STRIVE sequences | Agent instances |
 |---|---:|---:|---:|
@@ -276,6 +304,17 @@ Relevant quality considerations include:
 - category reduction from detailed nuScenes classes to STRIVE classes
 
 The quantitative impact of these operations should be measured where possible.
+
+### Incomplete History
+
+The public `NuScenesDataset` implementation sets `require_full_past=False`
+by default.
+
+Therefore, full past history is not required for every returned non-ego agent
+unless this option is explicitly enabled.
+
+The prevalence of incomplete histories should be measured by the dataset
+profiling script.
 
 ---
 

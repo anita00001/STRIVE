@@ -12,8 +12,9 @@ scope:
   status: "in-progress"
 
 source:
+  source:
   repository: "nv-tlabs/STRIVE"
-  commit: null
+  commit: "b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d"
   paper: "Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior"
 
 agents:
@@ -53,8 +54,15 @@ map:
     - lane_divider
 
 preprocessing:
-  singapore_x_flip: true
+  singapore_x_flip:
+    enabled: true
+    repository_default: true
+
   finite_difference_motion_features: true
+
+  require_full_past:
+    repository_default: false
+
   drivable_overlap_filter:
     enabled: true
     threshold_fraction: 0.30
@@ -64,6 +72,20 @@ splits:
     source: "nuScenes prediction challenge training split"
     num_sequences: null
     num_agents: null
+  
+  paper_reported_training:
+    source: "nuScenes prediction challenge training split"
+
+  repository_default:
+    use_challenge_splits: false
+
+  released_checkpoint:
+    exact_split_verified: false
+
+  statistics:
+    train_sequences: null
+    validation_sequences: null
+    test_sequences: null
 
 statistics:
   source_scenes: null
@@ -89,7 +111,34 @@ provenance:
   artifact_verified: false
   statistics_computed: false
 
+evidence:
+  repository_commit:
+    value: "b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d"
+    status: "repository-verified"
+
+  main_agent_categories:
+    value:
+      - car
+      - truck
+    status: "paper-and-repository-verified"
+
+  timestep_seconds:
+    value: 0.5
+    status: "repository-verified"
+
+  map_resolution_pixels:
+    value: 256
+    status: "paper-and-repository-verified"
+
+  pixels_per_meter:
+    value: 4
+    status: "paper-and-repository-verified"
+
+  released_checkpoint_training_split:
+    value: null
+    status: "not-yet-verified"
+
 licenses:
   upstream: null
-  derived_data: null
+  derived_models_and_released_scenarios: "CC-BY-NC-SA-4.0"
   verification_required: true
