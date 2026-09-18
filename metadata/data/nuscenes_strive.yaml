@@ -563,172 +563,172 @@ splits:
 
     evidence_status: "programmatically-computed"
 
-    prediction_challenge_mode:
-      use_challenge_splits: true
-      sample_semantics: "prediction target agent/sample pair"
+  prediction_challenge_mode:
+    use_challenge_splits: true
+    sample_semantics: "prediction target agent/sample pair"
 
-      strive_to_challenge_mapping:
-        train: "train"
-        validation: "train_val"
-        test: "val"
+    strive_to_challenge_mapping:
+      train: "train"
+      validation: "train_val"
+      test: "val"
 
+    train:
+      scenes: 500
+      prediction_target_samples: 29884
+
+    validation:
+      scenes: 200
+      prediction_target_samples: 7705
+
+    totals:
+      scenes: 700
+      prediction_target_samples: 37589
+
+    profiling:
       train:
-        scenes: 500
-        prediction_target_samples: 29884
+        compiled_non_ego_agents:
+          car: 7489
+          truck: 1238
+
+        scene_locations:
+          Boston: 283
+          Singapore: 217
+
+        sample_locations:
+          Boston: 18726
+          Singapore: 11158
+
+        agents_per_sample:
+          mean: 12.703721054745014
+          median: 11.0
+          min: 2
+          max: 60
+
+        all_agent_participations:
+          total: 379638
+          car: 329183
+          truck: 50455
+
+        non_ego_participations:
+          total: 349754
+          car: 299299
+          truck: 50455
+
+        incomplete_past:
+          all_agents:
+            count: 55242
+            fraction: 0.1455123038262766
+            missing_past_timesteps: 97922
+            total_past_timesteps: 1518552
+            missing_timestep_fraction: 0.06448379772309411
+
+          non_ego:
+            count: 53038
+            fraction: 0.15164372673364707
+            missing_past_timesteps: 94645
+            total_past_timesteps: 1399016
+            missing_timestep_fraction: 0.06765112050183844
+
+          samples:
+            count: 17276
+            fraction: 0.5781019943782626
 
       validation:
-        scenes: 200
-        prediction_target_samples: 7705
+        compiled_non_ego_agents:
+          car: 2891
+          truck: 720
 
-      totals:
-        scenes: 700
-        prediction_target_samples: 37589
+        scene_locations:
+          Boston: 107
+          Singapore: 93
 
-      profiling:
-        train:
-          compiled_non_ego_agents:
-            car: 7489
-            truck: 1238
+        sample_locations:
+          Boston: 5222
+          Singapore: 2483
 
-          scene_locations:
-            Boston: 283
-            Singapore: 217
+        agents_per_sample:
+          mean: 12.75107073329007
+          median: 11.0
+          min: 2
+          max: 48
 
-          sample_locations:
-            Boston: 18726
-            Singapore: 11158
+        all_agent_participations:
+          total: 98247
+          car: 77712
+          truck: 20535
 
-          agents_per_sample:
-            mean: 12.703721054745014
-            median: 11.0
-            min: 2
-            max: 60
+        non_ego_participations:
+          total: 90542
+          car: 70007
+          truck: 20535
 
-          all_agent_participations:
-            total: 379638
-            car: 329183
-            truck: 50455
+        incomplete_past:
+          all_agents:
+            count: 15567
+            fraction: 0.15844758618583774
+            missing_past_timesteps: 27710
+            total_past_timesteps: 392988
+            missing_timestep_fraction: 0.0705110588618482
 
-          non_ego_participations:
-            total: 349754
-            car: 299299
-            truck: 50455
+          non_ego:
+            count: 14956
+            fraction: 0.16518300899030283
+            missing_past_timesteps: 26802
+            total_past_timesteps: 362168
+            missing_timestep_fraction: 0.07400432948245013
 
-          incomplete_past:
-            all_agents:
-              count: 55242
-              fraction: 0.1455123038262766
-              missing_past_timesteps: 97922
-              total_past_timesteps: 1518552
-              missing_timestep_fraction: 0.06448379772309411
+          samples:
+            count: 4705
+            fraction: 0.6106424399740429
 
-            non_ego:
-              count: 53038
-              fraction: 0.15164372673364707
-              missing_past_timesteps: 94645
-              total_past_timesteps: 1399016
-              missing_timestep_fraction: 0.06765112050183844
+      combined:
+        source_scenes: 700
+        dataset_samples: 37589
 
-            samples:
-              count: 17276
-              fraction: 0.5781019943782626
+        compiled_non_ego_agents:
+          car: 10380
+          truck: 1958
+          total: 12338
 
-        validation:
-          compiled_non_ego_agents:
-            car: 2891
-            truck: 720
+        scene_locations:
+          Boston: 390
+          Singapore: 310
 
-          scene_locations:
-            Boston: 107
-            Singapore: 93
+        sample_locations:
+          Boston: 23948
+          Singapore: 13641
 
-          sample_locations:
-            Boston: 5222
-            Singapore: 2483
+        all_agent_participations:
+          total: 477885
 
-          agents_per_sample:
-            mean: 12.75107073329007
-            median: 11.0
-            min: 2
-            max: 48
+        non_ego_participations:
+          total: 440296
+          car: 369306
+          truck: 70990
 
-          all_agent_participations:
-            total: 98247
-            car: 77712
-            truck: 20535
+        agents_per_sample:
+          mean: 12.713426800393732
 
-          non_ego_participations:
-            total: 90542
-            car: 70007
-            truck: 20535
+        incomplete_past:
+          all_agents:
+            count: 70809
+            fraction: 0.14817163125019617
+            missing_past_timesteps: 125632
+            total_past_timesteps: 1911540
+            missing_timestep_fraction: 0.06572292497148896
 
-          incomplete_past:
-            all_agents:
-              count: 15567
-              fraction: 0.15844758618583774
-              missing_past_timesteps: 27710
-              total_past_timesteps: 392988
-              missing_timestep_fraction: 0.0705110588618482
+          non_ego:
+            count: 67994
+            fraction: 0.1544279303014336
+            missing_past_timesteps: 121447
+            total_past_timesteps: 1761184
+            missing_timestep_fraction: 0.06895758762287188
 
-            non_ego:
-              count: 14956
-              fraction: 0.16518300899030283
-              missing_past_timesteps: 26802
-              total_past_timesteps: 362168
-              missing_timestep_fraction: 0.07400432948245013
+          samples:
+            count: 21981
+            fraction: 0.5847721407858683
 
-            samples:
-              count: 4705
-              fraction: 0.6106424399740429
-
-        combined:
-          source_scenes: 700
-          dataset_samples: 37589
-
-          compiled_non_ego_agents:
-            car: 10380
-            truck: 1958
-            total: 12338
-
-          scene_locations:
-            Boston: 390
-            Singapore: 310
-
-          sample_locations:
-            Boston: 23948
-            Singapore: 13641
-
-          all_agent_participations:
-            total: 477885
-
-          non_ego_participations:
-            total: 440296
-            car: 369306
-            truck: 70990
-
-          agents_per_sample:
-            mean: 12.713426800393732
-
-          incomplete_past:
-            all_agents:
-              count: 70809
-              fraction: 0.14817163125019617
-              missing_past_timesteps: 125632
-              total_past_timesteps: 1911540
-              missing_timestep_fraction: 0.06572292497148896
-
-            non_ego:
-              count: 67994
-              fraction: 0.1544279303014336
-              missing_past_timesteps: 121447
-              total_past_timesteps: 1761184
-              missing_timestep_fraction: 0.06895758762287188
-
-            samples:
-              count: 21981
-              fraction: 0.5847721407858683
-
-      evidence_status: "programmatically-computed"
+    evidence_status: "programmatically-computed"
 
   released_checkpoint:
     exact_dataset_construction_verified: false
