@@ -1,0 +1,95 @@
+schema_version: "0.1"
+
+dataset:
+  id: "D-01"
+  name: "STRIVE nuScenes-Derived Traffic Dataset"
+  upstream_dataset: "nuScenes"
+  upstream_version: "trainval"
+  associated_system: "STRIVE"
+
+scope:
+  primary_model: "car-truck traffic model"
+  status: "in-progress"
+
+source:
+  repository: "nv-tlabs/STRIVE"
+  commit: null
+  paper: "Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior"
+
+agents:
+  main_model_categories:
+    - car
+    - truck
+
+temporal:
+  frequency_hz: 2.0
+  timestep_seconds: 0.5
+  past_seconds: 2.0
+  past_steps: 4
+  future_seconds: 6.0
+  future_steps: 12
+
+agent_state:
+  fields:
+    - x
+    - y
+    - heading_x
+    - heading_y
+    - speed
+    - heading_rate
+  attributes:
+    - length
+    - width
+
+map:
+  crop_pixels:
+    width: 256
+    height: 256
+  pixels_per_meter: 4
+  layers:
+    - drivable_area
+    - carpark_area
+    - road_divider
+    - lane_divider
+
+preprocessing:
+  singapore_x_flip: true
+  finite_difference_motion_features: true
+  drivable_overlap_filter:
+    enabled: true
+    threshold_fraction: 0.30
+
+splits:
+  traffic_training:
+    source: "nuScenes prediction challenge training split"
+    num_sequences: null
+    num_agents: null
+
+statistics:
+  source_scenes: null
+  training_sequences: null
+  validation_sequences: null
+  total_agent_instances: null
+  cars: null
+  trucks: null
+  boston_sequences: null
+  singapore_sequences: null
+  mean_agents_per_scene: null
+  median_agents_per_scene: null
+  filtered_samples: null
+
+scenario_generation:
+  reported_initial_scenarios: 1200
+  scenario_length_seconds: 8
+  exact_reproduced_count: null
+
+provenance:
+  paper_verified: true
+  repository_verified: true
+  artifact_verified: false
+  statistics_computed: false
+
+licenses:
+  upstream: null
+  derived_data: null
+  verification_required: true
