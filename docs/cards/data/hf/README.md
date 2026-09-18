@@ -111,17 +111,11 @@ STRIVE performs the following major preprocessing operations:
 - visibility-mask construction;
 - fully connected scene-graph construction.
 
-For ordinary non-challenge tracks, a frame is retained when:
+For ordinary non-challenge tracks, a frame is retained only when both of the
+following conditions hold:
 
-\[
-f_{\mathrm{drivable}} \ge 0.30
-\]
-
-and:
-
-\[
-f_{\mathrm{carpark}} < 0.30.
-\]
+- `drivable_frac >= 0.30`
+- `carpark_frac < 0.30`
 
 Prediction-challenge target tracks bypass this ordinary spatial-filtering rule.
 
