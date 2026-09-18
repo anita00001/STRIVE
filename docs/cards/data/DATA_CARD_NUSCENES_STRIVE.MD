@@ -103,22 +103,39 @@ window consisting of observed history followed by future motion.
 
 ## 7. Agent State Representation
 
-The STRIVE implementation represents each agent state using:
+## 7. Agent State Representation
 
-- x position
-- y position
-- heading x-component
-- heading y-component
-- speed
-- heading-rate / yaw-rate quantity
+Each agent state is represented by six values:
 
-Vehicle attributes include:
+\[
+(x,\ y,\ h_x,\ h_y,\ s,\ \dot{h})
+\]
 
-- length
-- width
+where:
 
-Exact normalization statistics will be documented after verification from the
-training dataset and implementation.
+| Field | Meaning |
+|---|---|
+| `x` | map-frame x position |
+| `y` | map-frame y position |
+| `heading_x` | x component of unit heading vector |
+| `heading_y` | y component of unit heading vector |
+| `speed` | scalar speed |
+| `heading_rate` | heading-change rate |
+
+Each agent additionally has two vehicle attributes:
+
+\[
+(l,\ w)
+\]
+
+representing vehicle length and width.
+
+Speed and heading-rate features are derived during STRIVE preprocessing using
+finite-difference operations on the trajectory data.
+
+The main car/truck traffic model represents semantic category using a two-entry
+one-hot vector corresponding to `car` and `truck`. The ego vehicle is assigned
+the `car` semantic vector by the dataset loader.
 
 ---
 
@@ -168,6 +185,58 @@ consistent with the traffic convention used by the model.
 
 This transformation must be documented when interpreting coordinates or
 reconstructing scenes.
+
+### Normalization
+
+STRIVE applies mean/std normalization according to
+
+\[
+x_{\mathrm{norm}} = \frac{x-\mu}{\sigma}.
+\]
+
+For the car/truck traffic model, the repository defines the following constants:
+
+| Quantity | Mean | Standard deviation |
+|---|---:|---:|
+| x position | 0.0 | 15.0 |
+| y position | 0.0 | 15.0 |
+| heading x | 0.0 | 1.0 |
+| heading y | 0.0 | 1.0 |
+| speed | 1.802009 | 3.507907 |
+| heading rate | -0.000037 | 0.055684 |
+| vehicle length | 4.844294 | 1.084860 |
+| vehicle width | 2.021752 | 0.299647 |
+
+These constants are defined in `src/datasets/utils.py` under
+`NUSC_NORM_STATS[('car', 'truck')]`.
+
+The public repository provides the constants directly, but the currently
+reviewed source does not establish the exact procedure or dataset subset from
+which the authors originally estimated every constant. They are therefore
+documented here as repository-defined normalization parameters rather than
+newly estimated statistics from this profiling exercise.
+
+### Training-Time Noise
+
+The current `configs/train_traffic.cfg` specifies:
+
+`data_noise_std: 0.01`
+
+During construction of training samples, STRIVE adds Gaussian noise with
+standard deviation 0.01 to the normalized `past`, `future`, and normalized
+vehicle-dimension (`lw`) tensors.
+
+The corresponding `past_gt` and `future_gt` tensors remain unperturbed
+normalized copies.
+
+After perturbing trajectory states, STRIVE:
+
+- renormalizes the two heading-vector components to unit length; and
+- clamps the first two normalized position components to a minimum of 0.0.
+
+The validation dataset does not receive this augmentation. `train_traffic.py`
+passes `data_noise_std` to the training `NuScenesDataset`, while the validation
+dataset uses the constructor default `noise_std=0.0`.
 
 ---
 
@@ -308,8 +377,85 @@ A STRIVE traffic sample includes, at minimum:
 - heading representation
 - heading-rate quantities
 
-Exact tensor shapes and field names will be added after cross-checking the
-dataset implementation.
+### Map Input
+
+The dataset does not directly return a 256×256 local map tensor inside each
+scene graph. Instead, it returns `map_idx`.
+
+During the traffic-model forward pass, STRIVE sets `scene_graph.pos` to the
+last past pose:
+
+`scene_graph.past[:, -1, :4]`
+
+The scene graph is then temporarily unnormalized inside `encode_map()` so that
+the local map crop can be queried in world/map coordinates. After map-feature
+extraction, the graph is normalized again.
+
+The rendered map observation has shape:
+
+`N × C × 256 × 256`
+
+where the default STRIVE map configuration produces four channels.
+
+### Data Schema details
+
+For a dataset sample containing \(N\) graph nodes, the STRIVE
+`NuScenesDataset` returns a PyTorch Geometric scene graph plus a map index.
+
+| Field | Shape | Description |
+|---|---|---|
+| `past` | `N × 4 × 6` | Normalized past states; may be noised during training |
+| `past_gt` | `N × 4 × 6` | Clean normalized past states |
+| `future` | `N × 12 × 6` | Normalized future states used by the CVAE posterior; may be noised during training |
+| `future_gt` | `N × 12 × 6` | Clean normalized future states |
+| `sem` | `N × 2` | One-hot car/truck semantics |
+| `lw` | `N × 2` | Normalized vehicle length and width |
+| `past_vis` | `N × 4` | Past visibility/validity mask |
+| `future_vis` | `N × 12` | Future visibility/validity mask |
+| `edge_index` | `2 × E` | Directed graph edges |
+| `x` | `N` | Dataset-created placeholder |
+| `pos` | `N` at dataset return | Placeholder subsequently replaced by the model |
+| `map_idx` | scalar per sample | Index of the sample's nuScenes map |
+
+For \(N\) agents, STRIVE constructs a directed fully connected interaction
+graph without self-edges:
+
+\[
+E=N(N-1).
+\]
+
+### Node Inclusion
+
+An agent is included only when it has a valid state at the final timestep of
+the past window. Because `require_full_past=False` by default, earlier history
+may still be missing. `past_vis` and `future_vis` explicitly represent this
+availability.
+
+### Node Ordering
+
+In repository-default mode:
+
+- node 0 is the ego vehicle.
+
+In prediction-challenge mode:
+
+- node 0 is the prediction target;
+- node 1 is the ego vehicle.
+
+The remaining eligible traffic participants follow afterward.
+
+### Map Input
+
+The dataset does not directly store an independent 256×256 map tensor inside
+each returned graph. It returns `map_idx`. During the traffic-model forward
+pass, STRIVE sets each node's `pos` from the final past pose and uses
+`NuScenesMapEnv` to render the corresponding local map crop.
+
+The resulting local map observation has shape:
+
+`N × C × 256 × 256`
+
+where, for the default STRIVE map configuration, \(C=4\).
 
 ---
 

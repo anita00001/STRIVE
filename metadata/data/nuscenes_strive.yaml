@@ -64,6 +64,246 @@ agent_state:
     - length
     - width
 
+# -------------------------------------------------------------------
+# Model-facing tensor representation
+# -------------------------------------------------------------------
+
+model_input_schema:
+  notation:
+    N: "number of agents/nodes in the current scene graph"
+    P: 4
+    F: 12
+    D_state: 6
+    D_attribute: 2
+    D_semantic: 2
+
+  tensors:
+    past:
+      shape: "[N, 4, 6]"
+      dtype: "float"
+      normalized: true
+      description: >
+        Past agent state sequence. During traffic-model training this tensor
+        may contain Gaussian perturbation after normalization.
+
+    past_gt:
+      shape: "[N, 4, 6]"
+      dtype: "float"
+      normalized: true
+      description: >
+        Clean normalized past state sequence retained without training-time
+        Gaussian perturbation.
+
+    future:
+      shape: "[N, 12, 6]"
+      dtype: "float"
+      normalized: true
+      description: >
+        Future state sequence supplied to the CVAE posterior encoder during
+        training. Training samples may contain Gaussian perturbation after
+        normalization.
+
+    future_gt:
+      shape: "[N, 12, 6]"
+      dtype: "float"
+      normalized: true
+      description: >
+        Clean normalized future trajectory used for reconstruction/error
+        computation.
+
+    sem:
+      shape: "[N, 2]"
+      dtype: "float"
+      encoding: "one-hot"
+      categories:
+        - car
+        - truck
+      description: >
+        Semantic category vector for each graph node. The ego vehicle is
+        represented using the car semantic category.
+
+    lw:
+      shape: "[N, 2]"
+      dtype: "float"
+      normalized: true
+      fields:
+        - length
+        - width
+      description: >
+        Vehicle dimensions. Training samples may contain Gaussian
+        perturbation after normalization.
+
+    past_vis:
+      shape: "[N, 4]"
+      dtype: "float"
+      values:
+        - 0
+        - 1
+      description: "Visibility/validity mask for past trajectory states."
+
+    future_vis:
+      shape: "[N, 12]"
+      dtype: "float"
+      values:
+        - 0
+        - 1
+      description: "Visibility/validity mask for future trajectory states."
+
+    edge_index:
+      shape: "[2, E]"
+      dtype: "int64"
+      description: >
+        Directed fully connected graph edges excluding self-edges.
+
+    x:
+      shape: "[N]"
+      status: "uninitialized-placeholder"
+      description: >
+        Placeholder tensor allocated with torch.empty by the dataset loader.
+        Its contents are unspecified and should not be interpreted as an
+        underlying dataset feature.
+
+    pos:
+      shape_at_dataset_return: "[N]"
+      status: "uninitialized-placeholder-at-dataset-return"
+      description: >
+        Placeholder tensor allocated with torch.empty by the dataset loader.
+        TrafficModel.forward replaces it with past[:, -1, :4] before map
+        feature extraction.
+
+  returned_separately:
+    map_idx:
+      type: "integer"
+      description: >
+        Index identifying the nuScenes map for the sample. In a minibatch these
+        indices are collated and used by NuScenesMapEnv to obtain local map
+        observations.
+
+
+# -------------------------------------------------------------------
+# Scene graph construction
+# -------------------------------------------------------------------
+
+scene_graph:
+  connectivity: "directed fully connected without self-edges"
+
+  edge_count:
+    formula: "N * (N - 1)"
+
+  agent_inclusion_rule:
+    description: >
+      An agent is included in a dataset sample only when its state is valid at
+      the final timestep of the past window. Earlier past states and future
+      states may still be unavailable.
+
+  node_ordering:
+    repository_default:
+      node_0: "ego"
+
+    prediction_challenge_mode:
+      node_0: "prediction target"
+      node_1: "ego"
+
+  ego_semantic_category: "car"
+
+
+# -------------------------------------------------------------------
+# Normalization
+# -------------------------------------------------------------------
+
+normalization:
+  method: "(value - mean) / standard_deviation"
+  statistics_source: "src/datasets/utils.py::NUSC_NORM_STATS"
+
+  car_truck_state:
+    x:
+      mean: 0.0
+      std: 15.0
+
+    y:
+      mean: 0.0
+      std: 15.0
+
+    heading_x:
+      mean: 0.0
+      std: 1.0
+
+    heading_y:
+      mean: 0.0
+      std: 1.0
+
+    speed:
+      mean: 1.802009
+      std: 3.507907
+
+    heading_rate:
+      mean: -0.000037
+      std: 0.055684
+
+  car_truck_vehicle_attributes:
+    length:
+      mean: 4.844294
+      std: 1.084860
+
+    width:
+      mean: 2.021752
+      std: 0.299647
+
+  evidence_status: "repository-verified"
+
+  notes:
+    - >
+      These constants are defined directly in the public STRIVE repository.
+    - >
+      The present documentation has not independently reconstructed the
+      dataset procedure originally used by the authors to estimate these
+      constants.
+
+# -------------------------------------------------------------------
+# Training-time data augmentation
+# -------------------------------------------------------------------
+
+training_time_augmentation:
+  current_train_config:
+    source: "configs/train_traffic.cfg"
+    gaussian_noise_std: 0.01
+    noise_space: "normalized feature space"
+
+  training_dataset:
+    past:
+      gaussian_noise: true
+
+    future:
+      gaussian_noise: true
+
+    vehicle_attributes:
+      gaussian_noise: true
+
+    past_gt:
+      gaussian_noise: false
+
+    future_gt:
+      gaussian_noise: false
+
+    post_noise_constraints:
+      heading_vectors:
+        description: >
+          The heading_x and heading_y components are renormalized to unit
+          length after Gaussian perturbation.
+
+      positions:
+        description: >
+          The first two normalized state components are clamped to a minimum
+          value of 0.0 after perturbation.
+
+  validation_dataset:
+    gaussian_noise: false
+    description: >
+      train_traffic.py passes data_noise_std to the training dataset but not
+      to the validation dataset; validation therefore uses the dataset
+      constructor default noise_std=0.0.
+
+  evidence_status: "repository-verified"
 
 # -------------------------------------------------------------------
 # Map representation
@@ -545,6 +785,23 @@ evidence:
     value: null
     status: "not-yet-verified"
 
+  normalization_statistics:
+    value:
+      state_source: "NUSC_NORM_STATS[('car', 'truck')]"
+      vehicle_attribute_source: "NUSC_NORM_STATS[('car', 'truck')]"
+    status: "repository-verified"
+
+  training_noise_std:
+    value: 0.01
+    status: "current-config-verified"
+
+  graph_connectivity:
+    value: "directed fully connected without self-edges"
+    status: "repository-verified"
+
+  dataset_tensor_schema:
+    value: "PyTorch Geometric scene graph plus map_idx"
+    status: "repository-verified"
 
 # -------------------------------------------------------------------
 # Licensing
