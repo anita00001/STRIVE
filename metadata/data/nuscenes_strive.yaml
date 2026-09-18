@@ -9,7 +9,7 @@ dataset:
 
 scope:
   primary_model: "car-truck traffic model"
-  status: "in-progress"
+  status: "complete"
 
 source:
   repository: "nv-tlabs/STRIVE"
@@ -748,7 +748,7 @@ statistics:
 
   remaining:
     prediction_challenge_detailed_profile: false
-    filtering_attrition: null
+    filtering_attrition: false
 
 # -------------------------------------------------------------------
 # Filtering attrition

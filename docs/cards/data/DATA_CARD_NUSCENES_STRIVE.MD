@@ -185,7 +185,6 @@ encoder.
 ---
 
 ## 9. STRIVE-Specific Preprocessing
-## 9. STRIVE-Specific Preprocessing
 
 ### 9.1 Spatial Filtering of Non-Ego Vehicle Frames
 
@@ -975,7 +974,7 @@ Repository:
 
 Exact repository commit used for this documentation:
 
-**TBD — record commit SHA**
+**STRIVE source commit:** `b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d`
 
 ### Relevant implementation files
 
@@ -1059,4 +1058,4 @@ treated as interchangeable:
 
 | Version | Date | Change |
 |---|---|---|
-| 0.1 | TBD | Initial data-card skeleton |
+| 0.1 | 2026-09-18 | Initial data-card skeleton |
