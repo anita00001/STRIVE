@@ -315,22 +315,59 @@ dataset implementation.
 
 ## 13. Dataset Statistics
 
-## 13. Dataset Statistics
-
 ### Repository-Default Mode
 
 Configuration:
 
 `use_challenge_splits=False`
 
+| Statistic | Train | Validation |
+|---|---:|---:|
+| Source scenes | 500 | 200 |
+| Dataset samples | 12,191 | 4,739 |
+| Compiled non-ego car records | 7,487 | 2,890 |
+| Compiled non-ego truck records | 1,238 | 720 |
+| Boston scenes | 283 | 107 |
+| Singapore scenes | 217 | 93 |
+| Boston dataset samples | 6,917 | 2,538 |
+| Singapore dataset samples | 5,274 | 2,201 |
+| Mean agents per sample | 9.524 | 10.178 |
+| Median agents per sample | 8 | 7 |
+| Minimum agents per sample | 1 | 1 |
+| Maximum agents per sample | 60 | 48 |
+| Non-ego car participations | 87,123 | 33,600 |
+| Non-ego truck participations | 16,797 | 9,893 |
+| Non-ego agents with incomplete past | 9,979 | 4,395 |
+| Fraction of non-ego participations with incomplete past | 9.603% | 10.105% |
+
+"Compiled non-ego agent records" count the agent records stored in the
+preprocessed scene representation. An agent participating in multiple temporal
+dataset samples is counted once in this statistic for its compiled scene record.
+
+"Agent participations" count appearances in the actual scene graphs supplied
+to the model. The same physical agent can therefore contribute to multiple
+dataset samples.
+
+"Incomplete past" means that at least one of the four past visibility steps
+for a non-ego agent is missing, consistent with the repository default
+`require_full_past=False`.
+
+#### Combined Train + Validation Summary
+
 | Statistic | Value |
 |---|---:|
 | Source scenes | 700 |
-| Training scenes | 500 |
-| Validation scenes | 200 |
-| Training scene-window samples | 12,191 |
-| Validation scene-window samples | 4,739 |
-| Total scene-window samples | 16,930 |
+| Dataset samples | 16,930 |
+| Compiled non-ego car records | 10,377 |
+| Compiled non-ego truck records | 1,958 |
+| Boston scenes | 390 |
+| Singapore scenes | 310 |
+| Boston dataset samples | 9,455 |
+| Singapore dataset samples | 7,475 |
+| Total agent participations | 164,343 |
+| Total non-ego participations | 147,413 |
+| Non-ego agents with incomplete past | 14,374 |
+| Combined incomplete-past participation rate | 9.751% |
 
 ### Prediction-Challenge Mode
 
@@ -338,31 +375,44 @@ Configuration:
 
 `use_challenge_splits=True`
 
-| Statistic | Value |
-|---|---:|
-| Source scenes | 700 |
-| Training scenes | 500 |
-| Validation scenes | 200 |
-| Training prediction-target samples | 29,884 |
-| Validation prediction-target samples | 7,705 |
-| Total prediction-target samples | 37,589 |
+| Statistic | Train | Validation |
+|---|---:|---:|
+| Source scenes | 500 | 200 |
+| Prediction-target samples | 29,884 | 7,705 |
+| Compiled non-ego car records | 7,489 | 2,891 |
+| Compiled non-ego truck records | 1,238 | 720 |
+| Boston scenes | 283 | 107 |
+| Singapore scenes | 217 | 93 |
+| Boston prediction-target samples | 18,726 | 5,222 |
+| Singapore prediction-target samples | 11,158 | 2,483 |
+| Mean agents per sample | 12.704 | 12.751 |
+| Median agents per sample | 11 | 11 |
+| Minimum agents per sample | 2 | 2 |
+| Maximum agents per sample | 60 | 48 |
+| Non-ego car participations | 299,299 | 70,007 |
+| Non-ego truck participations | 50,455 | 20,535 |
+| Non-ego participations with incomplete past | 53,038 | 14,956 |
+| Fraction of non-ego participations with incomplete past | 15.164% | 16.518% |
+| Samples containing at least one incomplete-history agent | 17,276 | 4,705 |
+| Fraction of samples containing incomplete history | 57.810% | 61.064% |
 
-### Statistics Not Yet Computed
+In prediction-challenge mode, one dataset sample corresponds to a prediction
+target agent at a particular sample time rather than to a unique temporal scene
+window. Multiple prediction targets may therefore correspond to overlapping
+portions of the same source scene.
 
-| Statistic | Value |
-|---|---:|
-| Number of car agent instances | TBD |
-| Number of truck agent instances | TBD |
-| Mean agents per dataset sample | TBD |
-| Median agents per dataset sample | TBD |
-| Boston sample count | TBD |
-| Singapore sample count | TBD |
-| Frequency of incomplete histories | TBD |
-| Samples/frames removed by filtering | TBD |
+The same physical traffic participant may also appear in many dataset samples.
+Accordingly, "agent participations" should not be interpreted as counts of
+unique physical vehicles.
 
-These remaining statistics will be generated programmatically using
-`tools/profile_nuscenes_strive.py`.
+The compiled non-ego car counts are slightly larger in prediction-challenge
+mode than in repository-default mode. This is consistent with the repository
+logic that preserves agents required by the prediction-challenge split even when
+ordinary spatial filtering would otherwise be applied.
 
+Incomplete-history statistics are reported because the repository defaults to
+`require_full_past=False`. A non-ego participant is counted as having an
+incomplete past when one or more of its four past visibility steps are missing.
 ---
 
 ## 14. Data Quality and Filtering

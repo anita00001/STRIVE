@@ -16,18 +16,40 @@ source:
   commit: "b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d"
   paper: "Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior"
 
+
+# -------------------------------------------------------------------
+# Agent categories
+# -------------------------------------------------------------------
+
 agents:
   main_model_categories:
     - car
     - truck
 
+
+# -------------------------------------------------------------------
+# Temporal representation
+# -------------------------------------------------------------------
+
 temporal:
   frequency_hz: 2.0
   timestep_seconds: 0.5
-  past_seconds: 2.0
-  past_steps: 4
-  future_seconds: 6.0
-  future_steps: 12
+
+  past:
+    seconds: 2.0
+    steps: 4
+
+  future:
+    seconds: 6.0
+    steps: 12
+
+  total_window_seconds: 8.0
+  total_steps: 16
+
+
+# -------------------------------------------------------------------
+# Agent representation
+# -------------------------------------------------------------------
 
 agent_state:
   fields:
@@ -37,38 +59,88 @@ agent_state:
     - heading_y
     - speed
     - heading_rate
+
   attributes:
     - length
     - width
 
+
+# -------------------------------------------------------------------
+# Map representation
+# -------------------------------------------------------------------
+
 map:
-  crop_pixels:
-    width: 256
-    height: 256
-  pixels_per_meter: 4
+  local_crop:
+    pixels:
+      width: 256
+      height: 256
+
+    bounds_m:
+      behind: -17.0
+      left: -38.5
+      front: 60.0
+      right: 38.5
+
+  base_raster:
+    pixels_per_meter: 4
+
   layers:
     - drivable_area
     - carpark_area
     - road_divider
     - lane_divider
 
+
+# -------------------------------------------------------------------
+# STRIVE preprocessing
+# -------------------------------------------------------------------
+
 preprocessing:
   singapore_x_flip:
     enabled: true
     repository_default: true
+    description: >
+      Singapore maps and trajectories are flipped about the x-axis so that
+      their driving direction is represented consistently with right-hand
+      traffic in the STRIVE data representation.
 
-  finite_difference_motion_features: true
+  finite_difference_motion_features:
+    enabled: true
+    description: >
+      Speed and heading-rate quantities are derived from trajectory data
+      using finite-difference operations in the STRIVE preprocessing code.
 
   require_full_past:
     repository_default: false
+    description: >
+      Non-ego agents are not required to have a complete four-step past
+      history by default. An agent can be retained when earlier past frames
+      are missing as long as the required current/past-end state is valid.
 
-  drivable_overlap_filter:
+  spatial_frame_filter:
     enabled: true
-    threshold_fraction: 0.30
+
+    drivable_area:
+      minimum_overlap_fraction: 0.30
+
+    carpark_area:
+      maximum_overlap_fraction_exclusive: 0.30
+
+    challenge_target_exception:
+      description: >
+        For agents required by the prediction-challenge split, the repository
+        bypasses the ordinary drivable-area/carpark spatial filtering so that
+        required prediction targets are retained.
+
+
+# -------------------------------------------------------------------
+# Dataset split behavior
+# -------------------------------------------------------------------
 
 splits:
   paper_reported_training:
     source: "nuScenes prediction challenge training split"
+    evidence_status: "paper-reported"
 
   repository_default:
     use_challenge_splits: false
@@ -86,65 +158,327 @@ splits:
       scenes: 700
       scene_window_samples: 16930
 
+    profiling:
+      train:
+        compiled_non_ego_agents:
+          car: 7487
+          truck: 1238
+
+        scene_locations:
+          Boston: 283
+          Singapore: 217
+
+        sample_locations:
+          Boston: 6917
+          Singapore: 5274
+
+        agents_per_sample:
+          mean: 9.524
+          median: 8
+          min: 1
+          max: 60
+
+        all_agent_participations:
+          car: 99314
+          truck: 16797
+
+        non_ego_participations:
+          car: 87123
+          truck: 16797
+          total: 103920
+
+        incomplete_past:
+          non_ego_count: 9979
+          non_ego_fraction: 0.09603
+
+      validation:
+        compiled_non_ego_agents:
+          car: 2890
+          truck: 720
+
+        scene_locations:
+          Boston: 107
+          Singapore: 93
+
+        sample_locations:
+          Boston: 2538
+          Singapore: 2201
+
+        agents_per_sample:
+          mean: 10.178
+          median: 7
+          min: 1
+          max: 48
+
+        all_agent_participations:
+          car: 38339
+          truck: 9893
+
+        non_ego_participations:
+          car: 33600
+          truck: 9893
+          total: 43493
+
+        incomplete_past:
+          non_ego_count: 4395
+          non_ego_fraction: 0.10105
+
+      combined:
+        source_scenes: 700
+        dataset_samples: 16930
+
+        compiled_non_ego_agents:
+          car: 10377
+          truck: 1958
+          total: 12335
+
+        scene_locations:
+          Boston: 390
+          Singapore: 310
+
+        sample_locations:
+          Boston: 9455
+          Singapore: 7475
+
+        all_agent_participations:
+          total: 164343
+
+        non_ego_participations:
+          car: 120723
+          truck: 26690
+          total: 147413
+
+        incomplete_past:
+          non_ego_count: 14374
+          non_ego_fraction: 0.0975083609
+
     evidence_status: "programmatically-computed"
 
-  prediction_challenge_mode:
-    use_challenge_splits: true
-    sample_semantics: "prediction target agent/sample pair"
+    prediction_challenge_mode:
+      use_challenge_splits: true
+      sample_semantics: "prediction target agent/sample pair"
 
-    strive_to_challenge_mapping:
-      train: "train"
-      validation: "train_val"
-      test: "val"
+      strive_to_challenge_mapping:
+        train: "train"
+        validation: "train_val"
+        test: "val"
 
-    train:
-      scenes: 500
-      prediction_target_samples: 29884
+      train:
+        scenes: 500
+        prediction_target_samples: 29884
 
-    validation:
-      scenes: 200
-      prediction_target_samples: 7705
+      validation:
+        scenes: 200
+        prediction_target_samples: 7705
 
-    totals:
-      scenes: 700
-      prediction_target_samples: 37589
+      totals:
+        scenes: 700
+        prediction_target_samples: 37589
 
-    evidence_status: "programmatically-computed"
+      profiling:
+        train:
+          compiled_non_ego_agents:
+            car: 7489
+            truck: 1238
+
+          scene_locations:
+            Boston: 283
+            Singapore: 217
+
+          sample_locations:
+            Boston: 18726
+            Singapore: 11158
+
+          agents_per_sample:
+            mean: 12.703721054745014
+            median: 11.0
+            min: 2
+            max: 60
+
+          all_agent_participations:
+            total: 379638
+            car: 329183
+            truck: 50455
+
+          non_ego_participations:
+            total: 349754
+            car: 299299
+            truck: 50455
+
+          incomplete_past:
+            all_agents:
+              count: 55242
+              fraction: 0.1455123038262766
+              missing_past_timesteps: 97922
+              total_past_timesteps: 1518552
+              missing_timestep_fraction: 0.06448379772309411
+
+            non_ego:
+              count: 53038
+              fraction: 0.15164372673364707
+              missing_past_timesteps: 94645
+              total_past_timesteps: 1399016
+              missing_timestep_fraction: 0.06765112050183844
+
+            samples:
+              count: 17276
+              fraction: 0.5781019943782626
+
+        validation:
+          compiled_non_ego_agents:
+            car: 2891
+            truck: 720
+
+          scene_locations:
+            Boston: 107
+            Singapore: 93
+
+          sample_locations:
+            Boston: 5222
+            Singapore: 2483
+
+          agents_per_sample:
+            mean: 12.75107073329007
+            median: 11.0
+            min: 2
+            max: 48
+
+          all_agent_participations:
+            total: 98247
+            car: 77712
+            truck: 20535
+
+          non_ego_participations:
+            total: 90542
+            car: 70007
+            truck: 20535
+
+          incomplete_past:
+            all_agents:
+              count: 15567
+              fraction: 0.15844758618583774
+              missing_past_timesteps: 27710
+              total_past_timesteps: 392988
+              missing_timestep_fraction: 0.0705110588618482
+
+            non_ego:
+              count: 14956
+              fraction: 0.16518300899030283
+              missing_past_timesteps: 26802
+              total_past_timesteps: 362168
+              missing_timestep_fraction: 0.07400432948245013
+
+            samples:
+              count: 4705
+              fraction: 0.6106424399740429
+
+        combined:
+          source_scenes: 700
+          dataset_samples: 37589
+
+          compiled_non_ego_agents:
+            car: 10380
+            truck: 1958
+            total: 12338
+
+          scene_locations:
+            Boston: 390
+            Singapore: 310
+
+          sample_locations:
+            Boston: 23948
+            Singapore: 13641
+
+          all_agent_participations:
+            total: 477885
+
+          non_ego_participations:
+            total: 440296
+            car: 369306
+            truck: 70990
+
+          agents_per_sample:
+            mean: 12.713426800393732
+
+          incomplete_past:
+            all_agents:
+              count: 70809
+              fraction: 0.14817163125019617
+              missing_past_timesteps: 125632
+              total_past_timesteps: 1911540
+              missing_timestep_fraction: 0.06572292497148896
+
+            non_ego:
+              count: 67994
+              fraction: 0.1544279303014336
+              missing_past_timesteps: 121447
+              total_past_timesteps: 1761184
+              missing_timestep_fraction: 0.06895758762287188
+
+            samples:
+              count: 21981
+              fraction: 0.5847721407858683
+
+      evidence_status: "programmatically-computed"
 
   released_checkpoint:
     exact_dataset_construction_verified: false
+    description: >
+      The paper reports prediction-challenge training data, while the current
+      repository training configuration does not explicitly enable
+      use_challenge_splits. The exact dataset-construction mode used for the
+      released pretrained checkpoint has not yet been independently verified.
+
+
+# -------------------------------------------------------------------
+# Profiling status
+# -------------------------------------------------------------------
 
 statistics:
-  source_scenes: null
-  training_sequences: null
-  validation_sequences: null
-  total_agent_instances: null
-  cars: null
-  trucks: null
-  boston_sequences: null
-  singapore_sequences: null
-  mean_agents_per_scene: null
-  median_agents_per_scene: null
-  filtered_samples: null
-  car_agent_instances: null
-  truck_agent_instances: null
-  mean_agents_per_sample: null
-  median_agents_per_sample: null
-  boston_samples: null
-  singapore_samples: null
-  incomplete_history_frequency: null
-  filtered_frames_or_samples: null
+  status: "partially-computed"
+
+  remaining:
+    prediction_challenge_detailed_profile: false
+    filtering_attrition: null
+
+
+# -------------------------------------------------------------------
+# Scenario-generation source data
+# -------------------------------------------------------------------
 
 scenario_generation:
   reported_initial_scenarios: 1200
   scenario_length_seconds: 8
   exact_reproduced_count: null
 
+  evidence_status: "paper-reported"
+
+
+# -------------------------------------------------------------------
+# Provenance
+# -------------------------------------------------------------------
+
 provenance:
   paper_verified: true
   repository_verified: true
   artifact_verified: false
-  statistics_computed: false
+
+  statistics_computed: true
+  statistics_status: "partial"
+
+  profile_runs:
+    repository_default:
+      path: "metadata/data/profile_runs/nuscenes_strive_trainval_repository_default.json"
+      status: "completed-and-reviewed"
+
+    prediction_challenge:
+      path: "metadata/data/profile_runs/nuscenes_strive_trainval_prediction_challenge.json"
+      status: "completed-and-reviewed"
+
+
+# -------------------------------------------------------------------
+# Evidence tracking
+# -------------------------------------------------------------------
 
 evidence:
   repository_commit:
@@ -159,21 +493,70 @@ evidence:
 
   timestep_seconds:
     value: 0.5
-    status: "repository-verified"
-
-  map_resolution_pixels:
-    value: 256
     status: "paper-and-repository-verified"
 
-  pixels_per_meter:
+  past_steps:
     value: 4
     status: "paper-and-repository-verified"
+
+  future_steps:
+    value: 12
+    status: "paper-and-repository-verified"
+
+  local_map_crop_pixels:
+    value:
+      width: 256
+      height: 256
+    status: "paper-and-repository-verified"
+
+  base_map_raster_pixels_per_meter:
+    value: 4
+    status: "repository-verified"
+
+  map_layers:
+    value:
+      - drivable_area
+      - carpark_area
+      - road_divider
+      - lane_divider
+    status: "paper-and-repository-verified"
+
+  singapore_x_flip:
+    value: true
+    status: "paper-and-repository-verified"
+
+  repository_default_split_counts:
+    value:
+      train_scenes: 500
+      train_samples: 12191
+      validation_scenes: 200
+      validation_samples: 4739
+    status: "programmatically-computed"
+
+  prediction_challenge_split_counts:
+    value:
+      train_scenes: 500
+      train_prediction_targets: 29884
+      validation_scenes: 200
+      validation_prediction_targets: 7705
+    status: "programmatically-computed"
 
   released_checkpoint_training_split:
     value: null
     status: "not-yet-verified"
 
+
+# -------------------------------------------------------------------
+# Licensing
+# -------------------------------------------------------------------
+
 licenses:
-  upstream: null
-  derived_models_and_released_scenarios: "CC-BY-NC-SA-4.0"
+  upstream:
+    value: null
+    status: "requires-official-nuscenes-verification"
+
+  derived_models_and_released_scenarios:
+    value: "CC-BY-NC-SA-4.0"
+    status: "reported-by-STRIVE-README"
+
   verification_required: true

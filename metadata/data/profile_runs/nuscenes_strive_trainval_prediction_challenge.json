@@ -1,0 +1,164 @@
+{
+  "profile_schema_version": "0.1",
+  "configuration": {
+    "data_version": "trainval",
+    "agent_categories": [
+      "car",
+      "truck"
+    ],
+    "past_timesteps": 4,
+    "future_timesteps": 12,
+    "use_challenge_splits": true,
+    "mode": "prediction_challenge"
+  },
+  "train": {
+    "split": "train",
+    "dataset_identity": {
+      "number_of_scenes": 500,
+      "number_of_dataset_samples": 29884,
+      "categories": [
+        "car",
+        "truck"
+      ],
+      "past_timesteps": 4,
+      "future_timesteps": 12,
+      "sequence_length": 16,
+      "dt_seconds": 0.5,
+      "frequency_hz": 2.0,
+      "flip_singapore": true,
+      "require_full_past": false,
+      "use_challenge_splits": true
+    },
+    "compiled_non_ego_agents": {
+      "car": 7489,
+      "truck": 1238
+    },
+    "source_scene_locations": {
+      "Boston": 283,
+      "Singapore": 217
+    },
+    "dataset_sample_locations": {
+      "Boston": 18726,
+      "Singapore": 11158
+    },
+    "sample_level_statistics": {
+      "agents_per_sample": {
+        "mean": 12.703721054745014,
+        "median": 11.0,
+        "min": 2,
+        "max": 60
+      },
+      "agent_participations": {
+        "all_agents": {
+          "total": 379638,
+          "by_category": {
+            "car": 329183,
+            "truck": 50455
+          }
+        },
+        "excluding_actual_ego": {
+          "total": 349754,
+          "by_category": {
+            "car": 299299,
+            "truck": 50455
+          }
+        }
+      },
+      "incomplete_history": {
+        "all_agents": {
+          "agents_with_incomplete_past": 55242,
+          "fraction_agents_with_incomplete_past": 0.1455123038262766,
+          "missing_past_timesteps": 97922,
+          "total_past_timesteps": 1518552,
+          "fraction_missing_past_timesteps": 0.06448379772309411
+        },
+        "excluding_actual_ego": {
+          "agents_with_incomplete_past": 53038,
+          "fraction_agents_with_incomplete_past": 0.15164372673364707,
+          "missing_past_timesteps": 94645,
+          "total_past_timesteps": 1399016,
+          "fraction_missing_past_timesteps": 0.06765112050183844
+        },
+        "samples": {
+          "samples_with_any_incomplete_history": 17276,
+          "fraction_samples_with_any_incomplete_history": 0.5781019943782626
+        }
+      }
+    }
+  },
+  "validation": {
+    "split": "val",
+    "dataset_identity": {
+      "number_of_scenes": 200,
+      "number_of_dataset_samples": 7705,
+      "categories": [
+        "car",
+        "truck"
+      ],
+      "past_timesteps": 4,
+      "future_timesteps": 12,
+      "sequence_length": 16,
+      "dt_seconds": 0.5,
+      "frequency_hz": 2.0,
+      "flip_singapore": true,
+      "require_full_past": false,
+      "use_challenge_splits": true
+    },
+    "compiled_non_ego_agents": {
+      "truck": 720,
+      "car": 2891
+    },
+    "source_scene_locations": {
+      "Singapore": 93,
+      "Boston": 107
+    },
+    "dataset_sample_locations": {
+      "Singapore": 2483,
+      "Boston": 5222
+    },
+    "sample_level_statistics": {
+      "agents_per_sample": {
+        "mean": 12.75107073329007,
+        "median": 11.0,
+        "min": 2,
+        "max": 48
+      },
+      "agent_participations": {
+        "all_agents": {
+          "total": 98247,
+          "by_category": {
+            "car": 77712,
+            "truck": 20535
+          }
+        },
+        "excluding_actual_ego": {
+          "total": 90542,
+          "by_category": {
+            "car": 70007,
+            "truck": 20535
+          }
+        }
+      },
+      "incomplete_history": {
+        "all_agents": {
+          "agents_with_incomplete_past": 15567,
+          "fraction_agents_with_incomplete_past": 0.15844758618583774,
+          "missing_past_timesteps": 27710,
+          "total_past_timesteps": 392988,
+          "fraction_missing_past_timesteps": 0.0705110588618482
+        },
+        "excluding_actual_ego": {
+          "agents_with_incomplete_past": 14956,
+          "fraction_agents_with_incomplete_past": 0.16518300899030283,
+          "missing_past_timesteps": 26802,
+          "total_past_timesteps": 362168,
+          "fraction_missing_past_timesteps": 0.07400432948245013
+        },
+        "samples": {
+          "samples_with_any_incomplete_history": 4705,
+          "fraction_samples_with_any_incomplete_history": 0.6106424399740429
+        }
+      }
+    }
+  }
+}
