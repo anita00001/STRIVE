@@ -12,7 +12,6 @@ scope:
   status: "in-progress"
 
 source:
-  source:
   repository: "nv-tlabs/STRIVE"
   commit: "b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d"
   paper: "Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior"
@@ -68,24 +67,52 @@ preprocessing:
     threshold_fraction: 0.30
 
 splits:
-  traffic_training:
-    source: "nuScenes prediction challenge training split"
-    num_sequences: null
-    num_agents: null
-  
   paper_reported_training:
     source: "nuScenes prediction challenge training split"
 
   repository_default:
     use_challenge_splits: false
+    sample_semantics: "scene temporal window"
+
+    train:
+      scenes: 500
+      scene_window_samples: 12191
+
+    validation:
+      scenes: 200
+      scene_window_samples: 4739
+
+    totals:
+      scenes: 700
+      scene_window_samples: 16930
+
+    evidence_status: "programmatically-computed"
+
+  prediction_challenge_mode:
+    use_challenge_splits: true
+    sample_semantics: "prediction target agent/sample pair"
+
+    strive_to_challenge_mapping:
+      train: "train"
+      validation: "train_val"
+      test: "val"
+
+    train:
+      scenes: 500
+      prediction_target_samples: 29884
+
+    validation:
+      scenes: 200
+      prediction_target_samples: 7705
+
+    totals:
+      scenes: 700
+      prediction_target_samples: 37589
+
+    evidence_status: "programmatically-computed"
 
   released_checkpoint:
-    exact_split_verified: false
-
-  statistics:
-    train_sequences: null
-    validation_sequences: null
-    test_sequences: null
+    exact_dataset_construction_verified: false
 
 statistics:
   source_scenes: null
@@ -99,6 +126,14 @@ statistics:
   mean_agents_per_scene: null
   median_agents_per_scene: null
   filtered_samples: null
+  car_agent_instances: null
+  truck_agent_instances: null
+  mean_agents_per_sample: null
+  median_agents_per_sample: null
+  boston_samples: null
+  singapore_samples: null
+  incomplete_history_frequency: null
+  filtered_frames_or_samples: null
 
 scenario_generation:
   reported_initial_scenarios: 1200
