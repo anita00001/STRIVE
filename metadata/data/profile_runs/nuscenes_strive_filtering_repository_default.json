@@ -1,0 +1,144 @@
+{
+  "profile_schema_version": "0.1",
+  "mode": "repository_default",
+  "configuration": {
+    "data_version": "trainval",
+    "categories": [
+      "car",
+      "truck"
+    ],
+    "use_challenge_splits": false,
+    "drivable_minimum_overlap": 0.3,
+    "carpark_maximum_overlap_exclusive": 0.3
+  },
+  "train": {
+    "raw_non_ego_tracks": 19358,
+    "raw_non_ego_observation_frames": 356212,
+    "spatial_filter_applied_tracks": 19358,
+    "spatial_filter_bypassed_tracks": 0,
+    "spatially_accepted_observation_frames": 169456,
+    "spatially_rejected_observation_frames": 186756,
+    "retained_non_ego_tracks": 8725,
+    "dropped_non_ego_tracks": 10633,
+    "postprocessed_visible_state_frames": 169091,
+    "by_category": {
+      "raw_tracks": {
+        "car": 16845,
+        "truck": 2513
+      },
+      "raw_observation_frames": {
+        "car": 304799,
+        "truck": 51413
+      },
+      "spatially_accepted_frames": {
+        "car": 141997,
+        "truck": 27459
+      },
+      "spatially_rejected_frames": {
+        "car": 162802,
+        "truck": 23954
+      },
+      "retained_tracks": {
+        "car": 7487,
+        "truck": 1238
+      },
+      "visible_state_frames": {
+        "car": 141667,
+        "truck": 27424
+      }
+    },
+    "by_location": {
+      "raw_tracks": {
+        "Boston": 14855,
+        "Singapore": 4503
+      },
+      "raw_observation_frames": {
+        "Boston": 277037,
+        "Singapore": 79175
+      },
+      "spatially_accepted_frames": {
+        "Boston": 119839,
+        "Singapore": 49617
+      },
+      "spatially_rejected_frames": {
+        "Boston": 157198,
+        "Singapore": 29558
+      },
+      "retained_tracks": {
+        "Boston": 6177,
+        "Singapore": 2548
+      },
+      "visible_state_frames": {
+        "Boston": 119553,
+        "Singapore": 49538
+      }
+    },
+    "spatial_rejection_fraction": 0.5242832919721964,
+    "dropped_track_fraction": 0.549281950614733
+  },
+  "validation": {
+    "raw_non_ego_tracks": 7297,
+    "raw_non_ego_observation_frames": 129921,
+    "spatial_filter_applied_tracks": 7297,
+    "spatial_filter_bypassed_tracks": 0,
+    "spatially_accepted_observation_frames": 70476,
+    "spatially_rejected_observation_frames": 59445,
+    "retained_non_ego_tracks": 3610,
+    "dropped_non_ego_tracks": 3687,
+    "postprocessed_visible_state_frames": 70220,
+    "by_category": {
+      "raw_tracks": {
+        "truck": 984,
+        "car": 6313
+      },
+      "raw_observation_frames": {
+        "truck": 21402,
+        "car": 108519
+      },
+      "spatially_accepted_frames": {
+        "truck": 16103,
+        "car": 54373
+      },
+      "spatially_rejected_frames": {
+        "truck": 5299,
+        "car": 54146
+      },
+      "retained_tracks": {
+        "truck": 720,
+        "car": 2890
+      },
+      "visible_state_frames": {
+        "truck": 16082,
+        "car": 54138
+      }
+    },
+    "by_location": {
+      "raw_tracks": {
+        "Singapore": 1765,
+        "Boston": 5532
+      },
+      "raw_observation_frames": {
+        "Singapore": 30988,
+        "Boston": 98933
+      },
+      "spatially_accepted_frames": {
+        "Singapore": 14976,
+        "Boston": 55500
+      },
+      "spatially_rejected_frames": {
+        "Singapore": 16012,
+        "Boston": 43433
+      },
+      "retained_tracks": {
+        "Singapore": 745,
+        "Boston": 2865
+      },
+      "visible_state_frames": {
+        "Singapore": 14944,
+        "Boston": 55276
+      }
+    },
+    "spatial_rejection_fraction": 0.4575472787309211,
+    "dropped_track_fraction": 0.5052761408798137
+  }
+}

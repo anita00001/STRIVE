@@ -744,12 +744,187 @@ splits:
 # -------------------------------------------------------------------
 
 statistics:
-  status: "partially-computed"
+  status: "computed"
 
   remaining:
     prediction_challenge_detailed_profile: false
     filtering_attrition: null
 
+# -------------------------------------------------------------------
+# Filtering attrition
+# -------------------------------------------------------------------
+
+filtering_attrition:
+  definition:
+    raw_non_ego_track: >
+      A non-ego car or truck track compiled from the selected nuScenes scenes
+      before STRIVE's drivable-area/carpark spatial filtering.
+
+    raw_observation_frame: >
+      An annotated non-ego agent observation before STRIVE's spatial filtering.
+
+    spatial_acceptance_rule: >
+      An ordinary annotation frame is retained when vehicle overlap with the
+      drivable-area raster is at least 0.30 and overlap with the carpark-area
+      raster is less than 0.30.
+
+    dropped_track: >
+      A raw non-ego track for which no usable postprocessed track remains after
+      STRIVE preprocessing.
+
+    postprocessed_visible_state_frame: >
+      A postprocessed frame whose finite-difference-derived speed is valid and
+      which is therefore marked visible by the STRIVE dataset loader.
+
+  repository_default:
+    use_challenge_splits: false
+
+    train:
+      raw_non_ego_tracks: 19358
+      retained_non_ego_tracks: 8725
+      dropped_non_ego_tracks: 10633
+      dropped_track_fraction: 0.549281950614733
+
+      raw_non_ego_observation_frames: 356212
+      spatially_accepted_observation_frames: 169456
+      spatially_rejected_observation_frames: 186756
+      spatial_rejection_fraction: 0.5242832919721964
+
+      postprocessed_visible_state_frames: 169091
+
+      spatial_filter_applied_tracks: 19358
+      spatial_filter_bypassed_tracks: 0
+
+    validation:
+      raw_non_ego_tracks: 7297
+      retained_non_ego_tracks: 3610
+      dropped_non_ego_tracks: 3687
+      dropped_track_fraction: 0.5052761408798137
+
+      raw_non_ego_observation_frames: 129921
+      spatially_accepted_observation_frames: 70476
+      spatially_rejected_observation_frames: 59445
+      spatial_rejection_fraction: 0.4575472787309211
+
+      postprocessed_visible_state_frames: 70220
+
+      spatial_filter_applied_tracks: 7297
+      spatial_filter_bypassed_tracks: 0
+
+    combined:
+      raw_non_ego_tracks: 26655
+      retained_non_ego_tracks: 12335
+      dropped_non_ego_tracks: 14320
+      dropped_track_fraction: 0.5372350403301445
+
+      raw_non_ego_observation_frames: 486133
+      spatially_accepted_observation_frames: 239932
+      spatially_rejected_observation_frames: 246201
+      spatial_rejection_fraction: 0.506447823949413
+
+      postprocessed_visible_state_frames: 239311
+
+      accepted_to_visible_loss:
+        frames: 621
+        fraction_of_spatially_accepted_frames: 0.0025882333327776202
+
+      by_category:
+        car:
+          raw_tracks: 23158
+          retained_tracks: 10377
+          dropped_track_fraction: 0.5519043095258658
+
+          raw_observation_frames: 413318
+          spatially_rejected_frames: 216948
+          spatial_rejection_fraction: 0.5248936654101685
+
+        truck:
+          raw_tracks: 3497
+          retained_tracks: 1958
+          dropped_track_fraction: 0.44009150700600513
+
+          raw_observation_frames: 72815
+          spatially_rejected_frames: 29253
+          spatial_rejection_fraction: 0.40174414612373827
+
+      by_location:
+        Boston:
+          raw_tracks: 20387
+          retained_tracks: 9042
+          dropped_track_fraction: 0.5564820719085691
+
+          raw_observation_frames: 375970
+          spatially_rejected_frames: 200631
+          spatial_rejection_fraction: 0.5336356624198739
+
+        Singapore:
+          raw_tracks: 6268
+          retained_tracks: 3293
+          dropped_track_fraction: 0.4746330567964263
+
+          raw_observation_frames: 110163
+          spatially_rejected_frames: 45570
+          spatial_rejection_fraction: 0.4136597587211677
+
+    evidence_status: "programmatically-computed"
+
+  prediction_challenge_mode:
+    use_challenge_splits: true
+
+    train:
+      raw_non_ego_tracks: 19358
+      retained_non_ego_tracks: 8727
+      dropped_non_ego_tracks: 10631
+      dropped_track_fraction: 0.5491786341564211
+
+      raw_non_ego_observation_frames: 356212
+      spatially_accepted_observation_frames: 170314
+      spatially_rejected_observation_frames: 185898
+      spatial_rejection_fraction: 0.5218746139939138
+
+      postprocessed_visible_state_frames: 169953
+
+      spatial_filter_applied_tracks: 16809
+      spatial_filter_bypassed_tracks: 2549
+
+    validation:
+      raw_non_ego_tracks: 7297
+      retained_non_ego_tracks: 3611
+      dropped_non_ego_tracks: 3686
+      dropped_track_fraction: 0.5051390982595587
+
+      raw_non_ego_observation_frames: 129921
+      spatially_accepted_observation_frames: 70617
+      spatially_rejected_observation_frames: 59304
+      spatial_rejection_fraction: 0.4564620038330986
+
+      postprocessed_visible_state_frames: 70361
+
+      spatial_filter_applied_tracks: 6584
+      spatial_filter_bypassed_tracks: 713
+
+    combined:
+      raw_non_ego_tracks: 26655
+      retained_non_ego_tracks: 12338
+      dropped_non_ego_tracks: 14317
+      dropped_track_fraction: 0.5371224910898518
+
+      raw_non_ego_observation_frames: 486133
+      spatially_accepted_observation_frames: 240931
+      spatially_rejected_observation_frames: 245202
+      spatial_rejection_fraction: 0.5043928307685346
+
+      postprocessed_visible_state_frames: 240314
+
+      spatial_filter_applied_tracks: 23393
+      spatial_filter_bypassed_tracks: 3262
+      bypassed_track_fraction: 0.12237854061151754
+
+      accepted_to_visible_loss:
+        frames: 617
+        fraction_of_spatially_accepted_frames: 0.0025608991786030023
+
+    evidence_status: "programmatically-computed"
 
 # -------------------------------------------------------------------
 # Scenario-generation source data
@@ -783,7 +958,14 @@ provenance:
     prediction_challenge:
       path: "metadata/data/profile_runs/nuscenes_strive_trainval_prediction_challenge.json"
       status: "completed-and-reviewed"
+    
+    filtering_repository_default:
+      path: "metadata/data/profile_runs/nuscenes_strive_filtering_repository_default.json"
+      status: "completed-and-reviewed"
 
+    filtering_prediction_challenge:
+      path: "metadata/data/profile_runs/nuscenes_strive_filtering_prediction_challenge.json"
+      status: "completed-and-reviewed"
 
 # -------------------------------------------------------------------
 # Evidence tracking
@@ -890,6 +1072,11 @@ evidence:
     value: "Caesar et al., nuScenes: A Multimodal Dataset for Autonomous Driving, CVPR 2020"
     status: "publication-verified"
 
+  spatial_filtering_attrition:
+    value:
+      repository_default_combined_frame_rejection_fraction: 0.506447823949413
+      repository_default_combined_track_drop_fraction: 0.5372350403301445
+    status: "programmatically-computed"
 # -------------------------------------------------------------------
 # Licensing
 # -------------------------------------------------------------------
