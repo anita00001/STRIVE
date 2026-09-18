@@ -16,6 +16,75 @@ source:
   commit: "b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d"
   paper: "Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior"
 
+# -------------------------------------------------------------------
+# upstream nuScenes provenance
+# -------------------------------------------------------------------
+upstream:
+  dataset:
+    name: "nuScenes"
+    provider: "Motional"
+    version_used_by_strive: "v1.0-trainval"
+
+  official_dataset_characteristics:
+    total_scenes: 1000
+    seconds_per_scene: 20
+    locations:
+      - Boston
+      - Singapore
+
+  canonical_publication:
+    title: "nuScenes: A Multimodal Dataset for Autonomous Driving"
+    authors:
+      - Holger Caesar
+      - Varun Bankiti
+      - Alex H. Lang
+      - Sourabh Vora
+      - Venice Erin Liong
+      - Qiang Xu
+      - Anush Krishnan
+      - Yu Pan
+      - Giancarlo Baldan
+      - Oscar Beijbom
+    venue: "IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)"
+    year: 2020
+    pages: "11621-11631"
+
+  strive_consumed_data:
+    sample_metadata: true
+    ego_pose: true
+
+    sample_annotations:
+      translation: true
+      rotation: true
+      size: true
+      category: true
+      instance_token: true
+
+    semantic_maps: true
+
+    map_layers_used:
+      - drivable_area
+      - carpark_area
+      - road_divider
+      - lane_divider
+
+    prediction_challenge_metadata:
+      used_when_use_challenge_splits_true: true
+      prediction_scenes_metadata: true
+
+    raw_sensor_measurements_as_model_features:
+      value: false
+      description: >
+        The STRIVE traffic dataset construction reviewed here derives agent
+        trajectories, ego poses, semantic categories, vehicle dimensions, and
+        semantic-map information from nuScenes metadata and annotations.
+        Raw camera, lidar, and radar measurements are not supplied as traffic
+        model input features.
+
+  evidence_status:
+    dataset_identity: "official-source-verified"
+    strive_usage: "repository-verified"
+
 
 # -------------------------------------------------------------------
 # Agent categories
@@ -803,17 +872,54 @@ evidence:
     value: "PyTorch Geometric scene graph plus map_idx"
     status: "repository-verified"
 
+  upstream_dataset_identity:
+    value: "nuScenes v1.0-trainval"
+    status: "official-and-repository-verified"
+
+  upstream_dataset_license:
+    value: "CC BY-NC-SA 4.0 plus nuScenes/Motional Dataset Terms"
+    status: "official-source-verified"
+
+  upstream_dataset_locations:
+    value:
+      - Boston
+      - Singapore
+    status: "official-source-verified"
+
+  upstream_canonical_publication:
+    value: "Caesar et al., nuScenes: A Multimodal Dataset for Autonomous Driving, CVPR 2020"
+    status: "publication-verified"
+
 # -------------------------------------------------------------------
 # Licensing
 # -------------------------------------------------------------------
 
 licenses:
   upstream:
-    value: null
-    status: "requires-official-nuscenes-verification"
+    dataset: "nuScenes"
+    license: "CC BY-NC-SA 4.0"
+    additional_terms: "nuScenes/Motional Dataset Terms"
+    commercial_use: "not covered by the standard non-commercial dataset terms"
+    third_party_exceptions_possible: true
+
+    qualification: >
+      The official nuScenes Terms of Use state that, unless specifically
+      labeled otherwise, datasets are provided under CC BY-NC-SA 4.0 together
+      with additional Dataset Terms. Where those terms conflict, the Dataset
+      Terms prevail. Some third-party data may be subject to separate terms.
+
+    source: "Official nuScenes Terms of Use"
+    source_last_updated: "2021-11-16"
+    verified_on: "2026-09-18"
+    status: "official-source-verified"
+
+  strive_code:
+    license: "MIT"
+    status: "repository-verified"
 
   derived_models_and_released_scenarios:
-    value: "CC-BY-NC-SA-4.0"
+    license: "CC-BY-NC-SA-4.0"
     status: "reported-by-STRIVE-README"
 
-  verification_required: true
+  verification_required: false
+

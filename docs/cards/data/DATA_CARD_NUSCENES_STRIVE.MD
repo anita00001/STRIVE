@@ -41,17 +41,43 @@ The learned traffic model conditions future motion on agent history and map cont
 
 ## 4. Upstream Dataset
 
-**Dataset:** nuScenes
+This data product is derived from the nuScenes autonomous-driving dataset.
+STRIVE uses the `v1.0-trainval` release.
 
-**Dataset version used by STRIVE:** trainval
+The upstream nuScenes dataset contains 1,000 driving scenes, each approximately
+20 seconds long, collected in Boston and Singapore. The complete upstream
+dataset contains multimodal sensor data, annotations, ego-pose information,
+and semantic maps.
 
-**Geographic locations represented by nuScenes:**
-- Boston, USA
-- Singapore
+STRIVE does not expose the complete multimodal nuScenes record to its learned
+traffic model. For the traffic-data pipeline documented here, STRIVE primarily
+uses:
 
-**Upstream license:** TBD — reference official nuScenes license and terms.
+- sample and scene metadata;
+- ego poses;
+- annotated traffic-agent positions, orientations, dimensions, categories,
+  and instance identities;
+- semantic map information; and
+- nuScenes prediction-challenge metadata when
+  `use_challenge_splits=True`.
 
-**Upstream documentation:** TBD — add official nuScenes dataset citation/link.
+The traffic model itself does not consume raw camera images, lidar point
+clouds, or radar measurements as model features.
+
+The resulting STRIVE representation is therefore a derived trajectory,
+scene-graph, and semantic-map representation rather than a copy of the full
+nuScenes sensor dataset.
+
+### Canonical nuScenes Reference
+
+Holger Caesar, Varun Bankiti, Alex H. Lang, Sourabh Vora,
+Venice Erin Liong, Qiang Xu, Anush Krishnan, Yu Pan,
+Giancarlo Baldan, and Oscar Beijbom.
+
+*nuScenes: A Multimodal Dataset for Autonomous Driving.*
+
+IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+2020, pp. 11621-11631.
 
 ---
 
@@ -100,8 +126,6 @@ The resulting traffic-model sample therefore represents an 8-second temporal
 window consisting of observed history followed by future motion.
 
 ---
-
-## 7. Agent State Representation
 
 ## 7. Agent State Representation
 
@@ -554,8 +578,7 @@ unique physical vehicles.
 The compiled non-ego car counts are slightly larger in prediction-challenge
 mode than in repository-default mode. This is consistent with the repository
 logic that preserves agents required by the prediction-challenge split even when
-ordinary spatial filtering would otherwise be applied.
-
+ordinary spatial filtering would otherwise be applied.<br>
 Incomplete-history statistics are reported because the repository defaults to
 `require_full_past=False`. A non-ego participant is counted as having an
 incomplete past when one or more of its four past visibility steps are missing.
@@ -693,20 +716,56 @@ Unknown values must not be inferred.
 
 ## 21. Licensing
 
-The STRIVE repository documentation states that pretrained models and generated
-scenarios derived from nuScenes are subject to separate nuScenes-derived
-licensing conditions.
+### Upstream nuScenes Data
 
-The exact applicable upstream and derived-data licensing terms should be
-verified against the current official nuScenes terms before redistribution.
+The official nuScenes Terms of Use state that, unless specifically labeled
+otherwise, nuScenes datasets are provided under the Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International license
+(CC BY-NC-SA 4.0), together with additional nuScenes/Motional Dataset Terms.
+
+Where the additional Dataset Terms conflict with CC BY-NC-SA 4.0, the Dataset
+Terms prevail.
+
+The official terms also note that some third-party data may be governed by
+different redistribution or reuse conditions. Users of this STRIVE-derived
+representation remain responsible for complying with the applicable upstream
+nuScenes terms.
+
+The official terms reviewed for this Data Card state that they were last
+updated on November 16, 2021. They were re-verified for this documentation on
+September 18, 2026.
+
+### STRIVE Code
+
+The public STRIVE source repository is distributed under the MIT License.
+
+### STRIVE-Released Derived Artifacts
+
+The STRIVE README identifies the released pretrained models and generated
+scenarios derived from nuScenes as licensed under CC-BY-NC-SA-4.0.
+
+These licensing statements apply to different artifacts and should not be
+treated as interchangeable:
+
+- STRIVE source code: MIT;
+- upstream nuScenes data: CC BY-NC-SA 4.0 plus the applicable Dataset Terms;
+- STRIVE-released derived models/scenarios: licensing reported separately by
+  the STRIVE repository.
 
 ---
 
 ## 22. References
 
-- Rempe et al., "Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior."
-- nuScenes dataset documentation.
-- STRIVE public source repository.
+1. Davis Rempe et al. *Generating Useful Accident-Prone Driving Scenarios via
+   a Learned Traffic Prior.* CVPR 2022.
+
+2. Holger Caesar et al. *nuScenes: A Multimodal Dataset for Autonomous
+   Driving.* CVPR 2020, pp. 11621-11631.
+
+3. nuScenes / Motional. *Terms of Use — Non-Commercial Use.*
+   Official nuScenes dataset terms.
+
+4. NVIDIA Toronto AI Lab. *STRIVE public source repository.*
 
 ---
 
