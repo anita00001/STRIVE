@@ -1,0 +1,123 @@
+schema_version: '1.0'
+card_id: C-02
+card_type: component
+name: STRIVE Adversarial Optimization
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-01
+  - M-01
+  - C-01
+  downstream:
+  - C-03
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  paper: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  optimizer: src/utils/adv_gen_optim.py
+  losses: src/losses/adv_gen_nusc.py
+  caller: src/adv_scenario_gen.py
+  rule_based_config: configs/adv_gen_rule_based.cfg
+  replay_config: configs/adv_gen_replay.cfg
+component:
+  purpose: Optimize M-01 latents to produce a planner collision while regularizing plausibility and unwanted collisions.
+  optimizer: Adam
+  optimized_variables:
+  - target/planner latent
+  - all non-planner latents
+  initialization: C-01 optimized latent z_init
+  default_latent_dimension: 32
+  fixed_iteration_optimization: true
+  early_stopping: false
+  differentiable_actual_rule_based_planner: false
+release_configs:
+  rule_based:
+    planner: hardcode
+    planner_cfg: default
+    num_iters: 200
+    lr: 0.05
+    split: val
+    val_size: 400
+    seq_interval: 10
+    feasibility_check_sep: true
+  replay:
+    planner: ego
+    num_iters: 300
+    lr: 0.05
+    split: val
+    val_size: 400
+    seq_interval: 10
+    feasibility_check_sep: true
+adversarial_loss_weights:
+  loss_coll_veh: 20.0
+  loss_coll_veh_plan: 20.0
+  loss_coll_env: 20.0
+  loss_init_z: 0.5
+  loss_init_z_atk: 0.05
+  loss_motion_prior: 1.0
+  loss_motion_prior_atk: 0.005
+  loss_motion_prior_ext: 0.0001
+  loss_match_ext: 10.0
+  loss_adv_crash: 2.0
+feasibility:
+  sample_count: 20
+  include_prior_mean: true
+  parser_defaults:
+    feasibility_thresh_m: 10.0
+    feasibility_time_steps: 4
+    feasibility_vel: 0.5
+    feasibility_infront_min: 0.0
+    feasibility_check_sep: false
+  release_rule_based_config:
+    feasibility_check_sep: true
+  candidate_agent_velocity_argument_in_released_caller: 0.0
+  configured_feasibility_vel_used_for: separate ego/planner motion threshold check
+  implementation_note: The released determine_feasibility_nusc call passes 0.0 rather than feasibility_vel for candidate-agent
+    velocity filtering.
+planner_behavior:
+  replay:
+    planner_name: ego
+    trajectory: scene_graph.future_gt for ego/planner
+    external_future_injected_into_decoder: true
+  rule_based:
+    planner_name: hardcode
+    closed_loop: true
+    actual_planner_rerun_each_iteration: true
+    actual_planner_used_as_target_matching_trajectory: true
+    differentiable_crash_target: M-01 target-node prediction from other_decoder_out
+    final_saved_planner_trajectory: actual rule-based planner rollout
+optimization_behavior:
+  target_and_other_gradient_separation: true
+  target_loss_other_latents_detached: true
+  adversarial_loss_target_latents_detached: true
+  collision_trajectory_interpolation_scale: 3
+  veh_collision_buffer_default_m: 0.1
+  attack_selection: soft minimum over eligible non-planner agents and timesteps
+  attacker_prior_regularization_reduced: true
+  attacker_init_regularization_reduced: true
+success:
+  function: compute_adv_gen_success
+  collision_checker: check_single_veh_coll
+  collision_geometry: oriented vehicle polygons
+  iou_threshold_strictly_greater_than: 0.02
+  criterion: selected attacking agent collides with actual final planner trajectory
+  result_partitions:
+  - adv_failed
+  - sol_failed
+  - adv_sol_success
+known_release_behavior:
+  target_matching_prior_term_discrepancy_inherited_from_C01: true
+  description: TgtMatchingLoss computes motion_prior_loss but adds motion_prior_ext * tgt_loss.mean() to total loss in
+    the public release.
+profile:
+  profiler: tools/profile_adversarial_optimization.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - rule_based_config
+  - replay_config
+  - optimizer_behavior
+  - feasibility_behavior
+  - success_behavior
+  - quality_checks
