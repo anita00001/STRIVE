@@ -1,0 +1,177 @@
+schema_version: '1.0'
+card_id: A1-D-01
+card_type: formal_assurance_data
+name: STRIVE Learned Traffic Model Verification Evidence Set
+version: 1.0.0
+status: complete_specification
+dataset_materialization: not_yet_generated
+assurance_approach: Verify STRIVE's learned traffic model
+target:
+  card_id: M-01
+  class: TrafficModel
+  repository: nv-tlabs/STRIVE
+  documented_revision: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  implementation: src/models/traffic_model.py
+concept_document:
+  title: Formal Assurance in STRIVE
+  available_inputs:
+  - STRIVE source code
+  - nuScenes dataset
+  ground_truth_status: partial
+  verifier_status: not decided yet
+  approach_1_candidate_properties:
+  - acceleration bounds
+  - unrealistic speed
+  - sharp turns
+  - vehicle collisions
+model_interface:
+  past_steps: 4
+  future_steps: 12
+  dt_seconds: 0.5
+  default_prediction_horizon_seconds: 6.0
+  state_size: 6
+  state_fields:
+  - x
+  - y
+  - heading_x
+  - heading_y
+  - speed
+  - heading_change_rate
+  vehicle_attribute_fields:
+  - length
+  - width
+  latent_size: 32
+  output_bicycle: true
+  raw_decoder_output_size: 2
+  raw_decoder_interpretation:
+  - normalized acceleration
+  - normalized ddh
+  public_future_output_fields:
+  - x
+  - y
+  - heading_x
+  - heading_y
+bicycle_dynamics:
+  source: src/datasets/utils.py::NUSC_BIKE_PARAMS and src/models/common.py::car_dynamics
+  dt_seconds: 0.5
+  max_speed_m_per_s: 50.0
+  max_heading_rate_rad_per_s: 6.283185307179586
+  acceleration_normalization:
+    mean: 0.409074
+    std: 1.04553
+  ddh_normalization:
+    mean: 4.6e-05
+    std: 0.075032
+  raw_acceleration_clamped: false
+  raw_ddh_clamped: false
+  rolled_speed_clamped: true
+  rolled_heading_rate_clamped: true
+  construction_invariant_warning: Proof of the released [0,50] speed or +/-2pi heading-rate bounds primarily verifies deterministic
+    clamp behavior, not learned-output realism.
+candidate_properties:
+- id: P-A
+  name: acceleration bounds
+  signal: raw unnormalized acceleration
+  status: thresholds_not_selected
+  lower: null
+  upper: null
+  units: m/s^2
+  primary_for_learned_behavior: true
+- id: P-S
+  name: speed bounds
+  signal: post-dynamics speed
+  status: formal_threshold_not_selected
+  implementation_bound:
+  - 0.0
+  - 50.0
+  units: m/s
+  implementation_bound_is_clamp: true
+- id: P-H
+  name: heading-rate / turning bounds
+  signal: post-dynamics heading-rate and/or raw ddh
+  status: formal_threshold_not_selected
+  implementation_heading_rate_bound:
+  - -6.283185307179586
+  - 6.283185307179586
+  units: rad/s for heading-rate
+  implementation_bound_is_clamp: true
+- id: P-COLL
+  name: vehicle-vehicle collision
+  signal: predicted vehicle geometry over time
+  status: geometry_and_threshold_not_selected
+- id: P-ROAD
+  name: drivable-area constraint
+  signal: predicted vehicle geometry vs map
+  status: formal_map_abstraction_not_selected
+strive_operational_metrics_not_automatically_formal_specs:
+  vehicle_collision_iou_threshold: 0.02
+  environment_collision_threshold: 0.05
+  source: src/losses/traffic_model.py
+evidence_sources:
+- STRIVE source code
+- nuScenes recorded trajectories
+- nuScenes maps
+- M-01 checkpoint and configuration
+- versioned formal property specifications
+- verification-generated bounded domains
+- formal/falsification counterexamples
+ground_truth:
+  recorded_trajectory_observations: true
+  map_observations: true
+  formal_safe_unsafe_labels: false
+  formal_solvable_labels: false
+recommended_case_kinds:
+- natural
+- bounded_perturbation
+- boundary_case
+- counterexample
+- regression
+- synthetic_domain_sample
+recommended_partitions:
+  development: property/encoding/tool development
+  verification: frozen final assurance domains
+  regression: counterexamples and historically difficult cases
+case_schema:
+  required_identity_fields:
+  - case_id
+  - partition
+  - case_kind
+  - model.checkpoint_sha256
+  - model.repository_revision
+  - property.property_id
+  - property.property_version
+  recommended_provenance_fields:
+  - source_dataset
+  - source_split
+  - source_scene_id
+  - source_sample_id
+  - parent_case_id
+  - config_sha256
+  recommended_result_fields:
+  - verification.status
+  - verification.verifier
+  - verification.verifier_version
+  - verification.runtime_seconds
+  - verification.numeric_tolerance
+  - replay.status
+verification_scope_options:
+  full: CNN + past encoder + prior GNN + latent + decoder GNN/GRU + bicycle dynamics
+  decoder_centered: fixed encoded scene + bounded latent + decoder + dynamics
+  reduced: fixed graph/map and selected one-step/few-step learned component
+limitations:
+- No formal verifier has been selected yet.
+- Formal property thresholds are not yet frozen.
+- nuScenes provides observed trajectories/maps, not formal safety labels.
+- Full M-01 verification may be intractable because of CNN/GNN/GRU/autoregressive/map-recrop structure.
+- Gaussian latent support is unbounded; any bounded latent proof covers only the declared region.
+- Post-dynamics clamp properties should not be confused with guarantees about raw learned outputs.
+relationships:
+  upstream:
+  - D-01
+  - M-01
+  - S-01
+  companion_assurance_model_card: A1-M-01
+profile:
+  profiler: tools/profile_traffic_model_verification_data.py
+  measurement_status: not_run
+  measured: null
