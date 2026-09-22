@@ -1,0 +1,123 @@
+schema_version: '1.0'
+card_id: A2-M-01
+card_type: formal_assurance_model
+name: STRIVE Accident Scenario Classifier Verification
+version: 1.0.0
+status: complete_specification
+formal_verification_status: not_run
+verified_claims: []
+falsified_claims: []
+assurance_approach: Verify the accident scenario classifier
+target:
+  type: paper-level learned binary mode classifier
+  classes:
+  - regular
+  - accident-prone
+  public_m04_is_same_target: false
+  original_public_source_identified: false
+  original_public_checkpoint_identified: false
+  documented_strive_revision: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+published_description:
+  history_seconds: 2
+  all_agents: true
+  local_map_information: true
+  graph_based_neural_processing: true
+  ego_feature_size: 64
+  classification_head: 2-layer MLP
+  output: binary regular vs accident-prone
+  training_loss: weighted binary cross entropy
+availability:
+  source_code: not identified in inspected public STRIVE repository
+  checkpoint: not identified in inspected public STRIVE release
+  dedicated_training_config: not identified
+  exact_threshold: not identified
+  exact_training_manifest: not identified
+verification_boundaries:
+  full:
+  - trajectory encoder
+  - map encoder
+  - scene graph/message passing
+  - 64-D ego feature
+  - 2-layer MLP
+  - decision rule
+  head_only:
+  - bounded or fixed 64-D ego feature
+  - 2-layer MLP
+  - decision rule
+  reproduction:
+  - independently implemented classifier based on published description
+  - must be labeled as reproduction unless original equivalence is established
+  selected: null
+formal_properties:
+- id: C-FN
+  name: accident-prone non-demotion
+  anchor_class: accident-prone
+  required_class: accident-prone
+  priority: candidate primary
+- id: C-FP
+  name: regular-case stability
+  anchor_class: regular
+  required_class: regular
+  priority: candidate secondary
+- id: C-MARGIN
+  name: classification margin robustness
+  requires_continuous_score: true
+- id: C-TRAJ
+  name: trajectory perturbation robustness
+- id: C-MAP
+  name: map perturbation robustness
+- id: C-JOINT
+  name: joint multi-agent robustness
+formal_encoding_requirements:
+- exact or explicitly reproduced trajectory preprocessing
+- exact or explicitly reduced map representation
+- graph topology/message semantics
+- ego-node selection
+- 64-D ego feature when full encoder is modeled
+- 2-layer MLP head
+- decision threshold/class mapping
+- numeric/arithmetic semantics
+verification_method:
+  tool: null
+  status: not selected
+  allowed_result_classes:
+  - verified
+  - counterexample
+  - unknown
+  - timeout
+  - error
+  counterexample_replay_required_when_possible: true
+  must_distinguish_proof_from_search_failure: true
+failure_modes:
+- accident-prone to regular class flip
+- regular to accident-prone class flip
+- low-margin instability
+- map-induced mode flip
+- multi-agent interaction instability
+- reproduction mismatch
+claim_evidence_status:
+  C-FN: not_run
+  C-FP: not_run
+  C-MARGIN: not_run
+  C-TRAJ: not_run
+  C-MAP: not_run
+  C-JOINT: not_run
+limitations:
+- Original binary classifier source/checkpoint was not identified publicly.
+- Exact classifier preprocessing and threshold are unavailable from the inspected public repository.
+- A reproduction is a different assurance target unless equivalence to the original artifact is established.
+- Regular/accident-prone are operational mode-selection classes, not universal formal safety truth.
+- Generated accident-prone training data inherit STRIVE generator/planner assumptions.
+- A verified classifier decision does not imply the selected planner mode is safe.
+relationships:
+  companion_data_card: A2-D-01
+  public_cluster_classifier_card: M-04
+  planner_tuning_card: F-01
+  system: S-01
+  other_assurance_approaches:
+  - A1 traffic-model verification
+  - A3 specification-driven optimizer falsification
+profile:
+  profiler: tools/profile_accident_classifier_verification.py
+  measurement_status: not_run
+  measured: null
