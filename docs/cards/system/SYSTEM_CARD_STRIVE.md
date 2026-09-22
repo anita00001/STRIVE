@@ -174,6 +174,14 @@ The system also consumes its own D-02 generated-scenario JSON for downstream eva
                     │ C-01 Initialization Optim.   │
                     └──────────────┬───────────────┘
                                    │
+                         hardcode  │  replay
+                    ┌──────────────┴───────────────┐
+                    ▼                              │
+       ┌────────────────────────┐                  │
+       │ M-02 Rule-Based Planner│                  │
+       │ lane/speed-profile plan│                  │
+       └────────────┬───────────┘                  │
+                    └──────────────┬───────────────┘
                                    ▼
                     ┌──────────────────────────────┐
                     │ C-02 Adversarial Optim.      │
@@ -195,29 +203,36 @@ The system also consumes its own D-02 generated-scenario JSON for downstream eva
                     ▼                                    ▼
        ┌────────────────────────┐           ┌────────────────────────┐
        │ M-03 Scenario Cluster. │           │ Planner Evaluation     │
-       └────────────┬───────────┘           └────────────────────────┘
-                    │
-                    ▼
-       ┌────────────────────────┐
-       │ M-04 Scenario Classif. │
-       │ public: cluster-based  │
-       └────────────┬───────────┘
-                    │ analytical relationship
-                    ▼
-       ┌────────────────────────┐
+       └────────────┬───────────┘           │ includes M-02 rollout  │
+                    │                       └────────────┬───────────┘
+                    ▼                                    │
+       ┌────────────────────────┐                        │
+       │ M-04 Scenario Classif. │                        │
+       │ public: cluster-based  │                        │
+       └────────────┬───────────┘                        │
+                    │ analytical relationship            │
+                    ▼                                    ▼
+       ┌────────────────────────┐◄───────────────────────┘
        │ F-01 Planner Tuning    │
+       │ tunes M-02 parameters  │
        └────────────────────────┘
 ```
 
 ### 3.2 Primary dependency chain
 
-The main generation chain is strict:
+The core learned-generation chain is:
 
 ```text
 D-01 → M-01 → C-01 → C-02 → C-03 → D-02
 ```
 
-Downstream analysis branches from D-02.
+For the released **rule-based (`hardcode`) attack path**, M-02 is an explicit runtime dependency between initialization fitting and adversarial optimization:
+
+```text
+D-01 → M-01 → C-01 → M-02 → C-02 → C-03 → D-02
+```
+
+For the replay (`ego`) attack path, M-02 is bypassed. Downstream evaluation and tuning can also invoke M-02 directly.
 
 ### 3.3 Runtime subsystems
 
@@ -334,7 +349,51 @@ It provides:
 - future decoding;
 - latent likelihood/plausibility signals.
 
-### 4.3 C-01 — Initialization Optimization
+### 4.3 M-02 — Rule-Based Planner
+
+M-02 documents `HardcodeNuscPlanner`, the released reactive planner used by STRIVE's `hardcode` attack path and planner-evaluation/tuning experiments.
+
+Its main loop:
+
+1. matches agents to the nuScenes lane graph;
+2. builds lane-following prediction splines;
+3. predicts nearby non-ego agents under longitudinal speed/acceleration hypotheses;
+4. generates a two-stage grid of ego speed profiles;
+5. scores candidate ego trajectories for approximate collision risk;
+6. selects a collision-acceptable candidate while preferring progress;
+7. applies the first control step and replans.
+
+Released default planning settings include:
+
+```text
+planner dt:        0.2 s
+prediction dt:     0.2 s
+prediction steps:  25
+planning horizon:  5.0 s
+interaction range: 70 m
+ego speed grid:    5 × 5 = 25 profiles
+```
+
+Planner collision scoring approximates each vehicle with **five circles**, forms time-dependent distance scores, and aggregates them as:
+
+```text
+1 - product(1 - per_step_score)
+```
+
+This value is heuristic and is not a calibrated collision probability.
+
+The released tuned configuration `final_tuned_val_1` changes four parameters relative to `DEF_CONFIG`:
+
+```text
+smax:        15.0 → 20.0
+accmax:       3.0 → 4.0
+score_wmin:   0.7 → 0.3
+score_wfac:  0.05 → 0.02
+```
+
+The M-02 card also records a release-specific issue: the optional `rollout(init_state=...)` branch references an undefined `vehicle_atts` variable. Standard STRIVE callers reset the planner first and do not rely on that branch.
+
+### 4.4 C-01 — Initialization Optimization
 
 C-01 starts from the posterior mean and optimizes latent variables to reproduce the initialization target.
 
@@ -355,7 +414,7 @@ learning rate: configured global lr, released rule config 0.05
 
 A release-specific `TgtMatchingLoss` implementation issue is documented in C-01: the configured external motion-prior coefficient multiplies trajectory matching in the total expression rather than the computed motion-prior value.
 
-### 4.4 C-02 — Adversarial Optimization
+### 4.5 C-02 — Adversarial Optimization
 
 C-02 modifies planner and non-planner latents through separate gradient paths.
 
@@ -386,7 +445,7 @@ For the rule-based planner, the actual planner is rerun during optimization, whi
 
 Final adversarial success is checked against the actual planner rollout.
 
-### 4.5 C-03 — Solution Optimization
+### 4.6 C-03 — Solution Optimization
 
 C-03 runs only after C-02 success.
 
@@ -404,7 +463,7 @@ The solution attempts to make the planner collision-free while preserving advers
 
 Final non-planner solution trajectories are explicitly restored to the C-02 adversarial trajectories.
 
-### 4.6 D-02 — Generated Scenarios
+### 4.7 D-02 — Generated Scenarios
 
 Serialized scenario JSON contains core fields such as:
 
@@ -442,7 +501,7 @@ adv_sol_success
 
 The separately downloadable public scenario bundle described by the README contains scenarios from paper Sections 5.1/5.2 where both adversarial and solution optimization succeeded.
 
-### 4.7 M-03 — Scenario Clustering
+### 4.8 M-03 — Scenario Clustering
 
 M-03 fits K-means on a four-dimensional collision-geometry feature:
 
@@ -465,7 +524,7 @@ collision interpolation scale = 5
 
 The README states that the supplied paper clustering was fit on over 400 scenarios from various nuScenes subsets and many rule-based planner versions.
 
-### 4.8 M-04 — Scenario Classification
+### 4.9 M-04 — Scenario Classification
 
 The **public repository** does not contain a separate supervised accident classifier for generated scenario labels.
 
@@ -486,7 +545,7 @@ data/clustering/cluster_labels.txt
 
 This public cluster-based classifier must be distinguished from the **paper-level learned binary accident-mode classifier** described for multi-mode planner tuning. The latter is described in supplementary material but was not identified in the inspected public repository.
 
-### 4.9 F-01 — Planner Tuning
+### 4.10 F-01 — Planner Tuning
 
 The rule-based planner exposes:
 
@@ -554,11 +613,14 @@ Generation proceeds:
 ```text
 feasibility sample/filter
 → C-01 initialization fit
+→ if hardcode: M-02 planner rollout + C-01 planner-target refit
 → C-02 adversarial optimization
 → C-02 collision success check
 → C-03 solution optimization if successful
 → C-03 solution success check
 ```
+
+For `planner=hardcode`, M-02 is therefore part of the actual generation path, not merely a downstream evaluator.
 
 ### 5.5 Scenario serialization
 
@@ -883,9 +945,9 @@ This is useful for replay-based scenario generation but is not a reactive closed
 
 ### 10.2 Rule-based planner
 
-`planner=hardcode` instantiates `HardcodeNuscPlanner`.
+`planner=hardcode` instantiates the M-02 `HardcodeNuscPlanner`.
 
-It uses lane graphs, candidate speed profiles, predicted surrounding-agent behavior, and collision scoring.
+M-02 is the authoritative model card for its lane-graph matching, spline generation, surrounding-agent hypotheses, 25-profile default ego search, five-circle collision scoring, candidate selection, rollout behavior, and default/tuned configurations.
 
 ### 10.3 Closed-loop adversarial interaction
 
@@ -1173,6 +1235,7 @@ This system card summarizes:
 ```text
 D-01
 M-01
+M-02
 C-01
 C-02
 C-03
@@ -1235,6 +1298,7 @@ When run in a checkout containing this documentation set, the profiler can verif
 docs/cards/system/SYSTEM_CARD_STRIVE.md
 docs/cards/data/DATA_CARD_NUSCENES_STRIVE.md
 docs/cards/models/MODEL_CARD_TRAFFIC.md
+docs/cards/models/MODEL_CARD_RULE_BASED_PLANNER_STRIVE.md
 docs/cards/components/COMPONENT_CARD_INITIALIZATION_OPTIMIZATION.md
 docs/cards/components/COMPONENT_CARD_ADVERSARIAL_OPTIMIZATION.md
 docs/cards/components/COMPONENT_CARD_SOLUTION_OPTIMIZATION.md
@@ -1327,7 +1391,11 @@ The main workflow inherits:
 - car/truck focus;
 - generated-scenario selection bias.
 
-### 16.8 Public-release gaps
+### 16.8 M-02 released alternate-initial-state issue
+
+The optional M-02 `rollout(init_state=...)` path references an undefined `vehicle_atts` symbol in the released implementation. Standard repository callers use `reset(...)` and do not depend on this branch, but direct consumers should avoid it unless corrected.
+
+### 16.9 Public-release gaps
 
 Important gaps include:
 
@@ -1511,6 +1579,7 @@ S-01  STRIVE System Card
 │
 ├── D-01  nuScenes Data Card
 ├── M-01  Main Traffic Model Card
+├── M-02  Rule-Based Planner Model Card
 ├── C-01  Initialization Optimization Component Card
 ├── C-02  Adversarial Optimization Component Card
 ├── C-03  Solution Optimization Component Card
@@ -1531,19 +1600,27 @@ M-01
   ▼
 C-01
   │
-  ▼
-C-02
-  │
-  ▼
-C-03
-  │
-  ▼
-D-02
-  │
-  ├──► M-03 ───► M-04 ───► F-01
-  │
-  └──► Planner Evaluation
+  ├──────────── replay ────────────┐
+  │                                │
+  └──► M-02 Rule-Based Planner ────┤
+                                   ▼
+                                  C-02
+                                   │
+                                   ▼
+                                  C-03
+                                   │
+                                   ▼
+                                  D-02
+                                   │
+                                   ├──► M-03 ───► M-04
+                                   │
+                                   └──► M-02 Planner Evaluation
+                                              │
+                                              ▼
+                                             F-01
 ```
+
+For the `hardcode` path, C-02 depends on **both M-01 and M-02**: M-01 supplies the differentiable traffic/target model and M-02 supplies the actual rule-based planner rollout. F-01 tunes M-02's configuration.
 
 ### 20.3 Relationship caveat
 
@@ -1551,8 +1628,10 @@ The diagram above is the **documentation architecture**.
 
 In the public code:
 
+- M-02 is an executable planner dependency for the `hardcode` C-02 path and for planner evaluation;
+- F-01 directly tunes M-02 parameters;
 - M-04 is cluster-based scenario classification;
-- F-01's released tuned config does not directly consume those M-04 labels.
+- F-01's released tuned config does not directly consume those public M-04 cluster labels.
 
 The paper's multi-mode tuning experiment instead uses a separately described learned binary accident-mode classifier that was not identified in the public repository.
 
@@ -1591,6 +1670,7 @@ The paper's multi-mode tuning experiment instead uses a separately described lea
 6. Subordinate documentation:
    - D-01 — nuScenes Data Card
    - M-01 — Main Traffic Model Card
+   - M-02 — Rule-Based Planner Model Card
    - C-01 — Initialization Optimization Component Card
    - C-02 — Adversarial Optimization Component Card
    - C-03 — Solution Optimization Component Card
@@ -1605,4 +1685,5 @@ The paper's multi-mode tuning experiment instead uses a separately described lea
 
 | Version | Date | Change |
 |---|---|---|
+| 1.0.1 | 2026-09-21 | Added M-02 Rule-Based Planner as an explicit system component; corrected hardcode dependency paths, planner-tuning relationship, profiler inventories, and system-level known issue coverage. |
 | 1.0.0 | 2026-09-21 | Completed S-01 across the full STRIVE generation, analysis, classification, planner-evaluation, and planner-tuning workflow. |
