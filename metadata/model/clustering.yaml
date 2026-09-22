@@ -1,0 +1,95 @@
+schema_version: '1.0'
+card_id: M-03
+card_type: model
+name: STRIVE Scenario Clustering
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-02
+  downstream:
+  - M-04
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  repository_revision_documented: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  paper: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  fit_implementation: src/cluster_scenarios.py
+  assignment_implementation: src/eval_adv_gen.py
+  scenario_loader: src/datasets/utils.py
+  public_model_artifact: data/clustering/cluster.pkl
+  public_label_artifact: data/clustering/cluster_labels.txt
+model:
+  algorithm: sklearn.cluster.KMeans
+  default_k: 10
+  random_state: 0
+  feature_dimension: 4
+  distance: squared Euclidean distance as used by KMeans
+  feature_standardization: false
+  feature_vector:
+  - collision_direction_x
+  - collision_direction_y
+  - attacker_heading_x
+  - attacker_heading_y
+  collision_interpolation_scale: 5
+  collision_selection: earliest interpolated planner-other collision
+feature_extraction:
+  trajectory: D-02 fut_adv
+  planner_index: 0
+  relative_frame: planner local frame at collision
+  collision_direction: unit-normalized local attacker position
+  attacker_heading: attacker heading vector transformed to planner local frame
+  excluded_from_fit:
+  - relative speed
+  - agent class
+  - map/location
+  - attack time
+  - solution success
+  - latent likelihood
+  - vehicle size
+  - full trajectory history
+training_data:
+  recommended_partitions:
+  - adv_sol_success
+  - sol_failed
+  collision_required: true
+  public_paper_clustering_description:
+    scenario_count: over 400
+    source_nuscenes: various subsets
+    planner_versions: many versions of the rule-based planner
+public_labels:
+  count: 10
+  ordered_by_cluster_index:
+  - Merge from Right
+  - Head On
+  - Behind
+  - Cutoff Left & Front
+  - T-Bone Left
+  - Front from Right
+  - Merge from Left
+  - T-Bone Right
+  - Cutoff Right
+  - Front from Left
+outputs:
+  model_pickle: cluster.pkl
+  semantic_labels: cluster_labels.txt
+  assignment_csv_fields:
+  - scene
+  - cluster_idx
+  - cluster_name
+  fit_visualization_pattern: cluster_k<k>.jpg
+reproducibility:
+  sklearn_imported: true
+  sklearn_pinned_in_public_requirements: false
+  risk: KMeans defaults can vary across scikit-learn versions; record sklearn version and estimator parameters.
+  pickle_warning: Only load trusted cluster.pkl files; Python pickle can execute code during deserialization.
+profile:
+  profiler: tools/profile_clustering.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - source_behavior
+  - labels
+  - requirements
+  - artifact
+  - quality_checks
