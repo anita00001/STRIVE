@@ -1,0 +1,193 @@
+schema_version: '1.0'
+card_id: F-01
+card_type: fitted_config
+name: STRIVE Rule-Based Planner Tuning
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-02
+  - M-03
+  - M-04
+  applies_to: STRIVE HardcodeNuscPlanner
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  repository_revision_documented: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  planner: src/planners/hardcode_goalcond_nusc.py
+  planner_config_wrapper: src/planners/planner.py
+  scenario_generation: src/adv_scenario_gen.py
+  planner_evaluation: src/eval_planner.py
+  eval_config: configs/eval_planner.cfg
+  adv_config: configs/adv_gen_rule_based.cfg
+released_configs:
+  default:
+    dt: 0.2
+    preddt: 0.2
+    nsteps: 25
+    cdistang: 20.0
+    xydistmax: 2.0
+    smax: 15.0
+    accmax: 3.0
+    predsfacs: &id001
+    - 0.5
+    - 1.0
+    predafacs: &id002
+    - 0.5
+    interacdist: 70.0
+    planaccfacs: &id003
+    - 1.0
+    plannspeeds: 5
+    col_plim: 0.1
+    score_wmin: 0.7
+    score_wfac: 0.05
+  final_tuned_val_1:
+    dt: 0.2
+    preddt: 0.2
+    nsteps: 25
+    cdistang: 20.0
+    xydistmax: 2.0
+    smax: 20.0
+    accmax: 4.0
+    predsfacs: *id001
+    predafacs: *id002
+    interacdist: 70.0
+    planaccfacs: *id003
+    plannspeeds: 5
+    col_plim: 0.1
+    score_wmin: 0.3
+    score_wfac: 0.02
+  config_dict_mapping:
+    default: DEF_CONFIG
+    final_tuned_val_1: TUNED_VAL_FINAL_1
+  tuned_source_comment: large-scale tuned on generated scenarios from validation set
+delta_default_to_tuned:
+  smax:
+    default: 15.0
+    tuned: 20.0
+    delta: 5.0
+  accmax:
+    default: 3.0
+    tuned: 4.0
+    delta: 1.0
+  score_wmin:
+    default: 0.7
+    tuned: 0.3
+    delta: -0.4
+  score_wfac:
+    default: 0.05
+    tuned: 0.02
+    delta: -0.03
+derived_config_properties:
+  default_prediction_horizon_seconds: 5.0
+  tuned_prediction_horizon_seconds: 5.0
+  candidate_speed_profiles_per_accel_factor_per_lane: 25
+  tuned_max_speed_change_percent: 33.3333333333
+  tuned_max_acceleration_change_percent: 33.3333333333
+paper_tuning:
+  search_type: exhaustive hyperparameter sweep
+  combination_count: 432
+  selection_primary: lowest collision rate
+  selection_tiebreak: lowest acceleration
+  initial_regular_scenarios: 800
+  initial_regular_scenario_duration_seconds: 8
+  initial_regular_source: nuScenes train/validation splits
+  challenging_scenarios_generated_against:
+  - default rule-based planner
+  - regular-tuned rule-based planner
+  behind_collisions_removed_for_challenging_tuning: true
+  search_ranges_reported:
+    p_max:
+    - 0.05
+    - 0.2
+    max_speed_m_per_s:
+    - 12.5
+    - 20.0
+    max_acceleration_m_per_s2:
+    - 3.0
+    - 4.5
+    additional: parameters related to computing p_col(trajectory)
+  full_discrete_grid_released_in_repo: false
+  dedicated_sweep_implementation_identified_in_public_repo: false
+  evaluation_split: held-out nuScenes test set
+  collision_eval_excludes_scenarios_where_all_hyperparameter_settings_collide: true
+  regular_oracle_best_collision_percent: 3.2
+paper_table3_results:
+- improvement: None (regular-tuned)
+  collision_percent:
+    regular: 4.6
+    collision: 68.6
+  collision_velocity_m_per_s:
+    regular: 4.59
+    collision: 10.48
+  acceleration_m_per_s2:
+    regular: 1.96
+    collision: 2.26
+- improvement: + Challenging data
+  collision_percent:
+    regular: 6.0
+    collision: 51.4
+  collision_velocity_m_per_s:
+    regular: 5.48
+    collision: 13.88
+  acceleration_m_per_s2:
+    regular: 2.29
+    collision: 2.5
+- improvement: + Extra learned mode
+  collision_percent:
+    regular: 4.6
+    collision: 54.3
+  collision_velocity_m_per_s:
+    regular: 4.6
+    collision: 10.86
+  acceleration_m_per_s2:
+    regular: 2.02
+    collision: 2.55
+- improvement: + Extra oracle mode
+  collision_percent:
+    regular: 4.6
+    collision: 54.3
+  collision_velocity_m_per_s:
+    regular: 4.59
+    collision: 10.4
+  acceleration_m_per_s2:
+    regular: 1.96
+    collision: 2.39
+accident_mode_classifier:
+  paper_described: true
+  public_repo_implementation_identified: false
+  task: binary regular vs accident-prone scene classification
+  history_seconds: 2
+  architecture_summary: Traffic-model-like trajectory/map encoders and scene-graph message passing; 64-D ego feature
+    to 2-layer MLP.
+  training_data: regular nuScenes training scenes plus over 1000 generated collision scenarios from train/validation
+    scenes using Replay and Rule-based planner variations
+  loss: class-imbalance-weighted binary cross entropy
+evaluation:
+  script: src/eval_planner.py
+  default_config: configs/eval_planner.cfg
+  default_eval_config_matches_DEF_CONFIG: true
+  default_scenario_dir: ./out/adv_gen_rule_based_out/scenario_results/adv_sol_success
+  matched_regular_scenarios_default: true
+  metrics:
+  - collision rate
+  - relative collision velocity
+  - acceleration
+  - forward acceleration
+  - lateral acceleration
+reproducibility_notes:
+- The public repository exposes final_tuned_val_1 but not the full 432-trial sweep implementation.
+- The repository does not explicitly map final_tuned_val_1 to one specific Table 3 row.
+- The paper's learned binary accident-mode classifier is described in supplementary material but was not identified in
+  the public repository.
+- configs/eval_planner.cfg contains default planner values, not final_tuned_val_1 values.
+profile:
+  profiler: tools/profile_planner_tuning.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - extracted_configs
+  - config_delta
+  - derived_properties
+  - release_behavior
+  - quality_checks
