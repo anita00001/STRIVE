@@ -1,0 +1,103 @@
+schema_version: '1.0'
+card_id: C-03
+card_type: component
+name: STRIVE Solution Optimization
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-01
+  - M-01
+  - C-01
+  - C-02
+  downstream:
+  - D-02
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  paper: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  optimizer: src/utils/sol_optim.py
+  losses: src/losses/adv_gen_nusc.py
+  caller: src/adv_scenario_gen.py
+  rule_based_config: configs/adv_gen_rule_based.cfg
+  replay_config: configs/adv_gen_replay.cfg
+component:
+  purpose: Find a collision-free M-01 target/planner trajectory while preserving the C-02 adversarial surrounding traffic.
+  runs_only_after_adversarial_success: true
+  optimizer: Adam
+  early_stopping: false
+  default_latent_dimension: 32
+  target_node_index_within_scene: 0
+initialization:
+  target_planner_latent: M-01 conditional prior mean, not C-02 target latent
+  non_planner_latents: C-02 adversarial latents
+  target_latent_shape: '[B, 1, D]'
+  other_latent_shape: '[NA-B, 1, D]'
+release_configs:
+  rule_based:
+    num_iters: 200
+    lr: 0.05
+    sol_future_len: 16
+  replay:
+    num_iters: 300
+    lr: 0.05
+    sol_future_len: 16
+solution_loss_weights:
+  sol_loss_motion_prior: 0.005
+  sol_loss_coll_veh: 10.0
+  sol_loss_coll_env: 10.0
+  sol_loss_init_z: 0.0
+  sol_loss_motion_prior_ext: 0.001
+  sol_loss_match_ext: 10.0
+optimization_behavior:
+  target_decode_future_steps: 16
+  other_match_decode_future_steps: 12
+  final_decode_future_steps: 12
+  target_collision_single_vehicle_index: 0
+  vehicle_collision_buffer_m: 0.5
+  collision_interpolation_scale: 3
+  target_loss_other_latents_detached: true
+  other_match_loss_target_latent_detached: true
+  returned_non_planner_trajectories_overwritten_with_C02_adversarial: true
+objective:
+  target_vehicle_collision_weight: 10.0
+  target_environment_collision_weight: 10.0
+  target_motion_prior_weight: 0.005
+  target_init_latent_weight: 0.0
+  other_trajectory_match_weight: 10.0
+  other_motion_prior_ext_config_weight: 0.001
+  released_other_matching_effective_coefficient: 10.001
+  tgt_matching_prior_term_discrepancy_inherited: true
+horizon:
+  model_default_steps: 12
+  model_default_seconds_at_2hz: 6.0
+  solution_optimization_steps: 16
+  solution_optimization_seconds_at_2hz: 8.0
+  returned_saved_steps: 12
+  note: The target is optimized for 16 steps, but final decode/serialization uses the default 12-step M-01 horizon.
+success:
+  function: compute_sol_success
+  vehicle_collision_checker: check_single_veh_coll
+  vehicle_collision_iou_threshold_strictly_greater_than: 0.02
+  environment_collision_check_default: true
+  environment_collision_ego_only: true
+  criterion: no planner collision with any other agent and no planner environment collision
+  does_not_prove_global_impossibility_on_failure: true
+result_partitions:
+  adv_sol_success: C-02 success and C-03 success
+  sol_failed: C-02 success and C-03 failure
+  adv_failed: C-02 failure; C-03 not run
+serialized_fields_when_solution_attempted:
+- fut_sol
+- z_sol
+profile:
+  profiler: tools/profile_solution_optimization.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - rule_based_config
+  - replay_config
+  - optimizer_behavior
+  - horizon_behavior
+  - success_behavior
+  - quality_checks
