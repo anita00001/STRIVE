@@ -1,0 +1,77 @@
+schema_version: '1.0'
+card_id: C-01
+card_type: component
+name: STRIVE Initialization Optimization
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-01
+  - M-01
+  downstream:
+  - C-02
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  paper: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  implementation: src/utils/init_optim.py
+  loss_implementation: src/losses/adv_gen_nusc.py
+  primary_caller: src/adv_scenario_gen.py
+  primary_config: configs/adv_gen_rule_based.cfg
+component:
+  purpose: Fit M-01 latent variables to an observed/selected initialization future before adversarial optimization.
+  optimized_variable: per-agent latent z
+  optimizer: Adam
+  initial_latent: posterior mean from M-01 embed(scene_graph, map_idx, map_env)
+  target_first_pass: scene_graph.future_gt[:, :, :4]
+  valid_timestep_rule: traj_vis == 1.0
+  decoder: M-01 decode_embedding
+  latent_dimension_default: 32
+  future_state_dimension: 4
+release_parameters:
+  initial_fit:
+    learning_rate: 0.1
+    iterations: 75
+    source: hard-coded in src/adv_scenario_gen.py call to run_init_optim
+  rule_based_planner_refit:
+    enabled_when: planner == hardcode
+    learning_rate: 0.05
+    learning_rate_source: global lr from configs/adv_gen_rule_based.cfg
+    iterations: 100
+    iterations_source: hard-coded in src/adv_scenario_gen.py
+    target_change: ego target future replaced with rule-based planner rollout
+  configured_initialization_loss_weights:
+    init_loss_match_ext: 10.0
+    init_loss_motion_prior_ext: 0.01
+  global_adversarial_parameters_not_initial_fit:
+    num_iters: 200
+    lr: 0.05
+    note: Do not use these values for the first C-01 fit; the first call hard-codes 75 iterations at 0.1.
+objective:
+  matching: mean squared error over unnormalized decoded/target x,y,hx,hy at valid timesteps
+  motion_prior_diagnostic: negative log probability of z under the M-01 conditional Gaussian prior
+  released_implementation_effective_objective: (init_loss_match_ext + init_loss_motion_prior_ext) * mean(matching_error)
+  released_effective_matching_coefficient: 10.01
+  implementation_discrepancy:
+    present: true
+    location: TgtMatchingLoss.forward in src/losses/adv_gen_nusc.py
+    description: motion_prior_loss is computed and reported, but the total loss adds init motion-prior weight times tgt_loss.mean()
+      rather than motion_prior_loss.mean().
+    reproducibility_implication: Correcting this changes behavior relative to the public release.
+outputs:
+  optimized_latent: cur_z
+  fitted_trajectory: init_result_traj
+  decoder_output: init_decoder_out
+  structured_trace_returned: false
+post_init_rule_based_validation:
+  planner_collision_check: true
+  behavior: scenes where the rule-based planner already collides after initialization can be removed before C-02
+profile:
+  profiler: tools/profile_initialization_optimization.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_facts
+  - config
+  - call_sites
+  - loss_behavior
+  - quality_checks
