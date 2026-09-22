@@ -1,0 +1,173 @@
+schema_version: '1.0'
+card_id: A1-M-01
+card_type: formal_assurance_model
+name: STRIVE Learned Traffic Model Verification
+version: 1.0.0
+status: complete_specification
+formal_verification_status: not_run
+verified_claims: []
+falsified_claims: []
+assurance_approach: Verify STRIVE's learned traffic model
+target:
+  card_id: M-01
+  class: TrafficModel
+  repository: nv-tlabs/STRIVE
+  documented_revision: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  implementation: src/models/traffic_model.py
+  interaction_implementation: src/models/interaction_net.py
+  dynamics_implementation: src/models/common.py::car_dynamics
+concept_document:
+  title: Formal Assurance in STRIVE
+  candidate_properties:
+  - acceleration bounds
+  - unsafe sharp turns
+  - unrealistic speeds
+  - vehicle collisions
+  verifier_selected: false
+  scope_selection_open: true
+  scope_question: full GNN-based learned component vs smaller formally analyzable component
+architecture:
+  map_encoder: 6-stage Conv2d + GroupNorm + ReLU, then linear projection
+  past_encoder_default: MLP
+  past_encoder_alternative: 4-layer GRU
+  future_encoder_default: MLP
+  prior: SceneInteractionNet
+  posterior: SceneInteractionNet
+  decoder: SceneInteractionNet
+  decoder_memory:
+    type: GRU
+    layers: 3
+    input_size: 4
+    hidden_size: 64
+  message_passing:
+    default_rounds: 1
+    aggregation: max
+    flow: source_to_target
+    relative_edge_features:
+    - x
+    - y
+    - heading_x
+    - heading_y
+  latent_size: 32
+model_interface:
+  past_steps: 4
+  future_steps: 12
+  dt_seconds: 0.5
+  default_horizon_seconds: 6.0
+  state_fields:
+  - x
+  - y
+  - heading_x
+  - heading_y
+  - speed
+  - heading_change_rate
+  attribute_fields:
+  - length
+  - width
+  raw_decoder_outputs_bicycle:
+  - normalized acceleration
+  - normalized ddh
+  returned_future_fields:
+  - x
+  - y
+  - heading_x
+  - heading_y
+dynamics:
+  max_speed_m_per_s: 50.0
+  max_heading_rate_rad_per_s: 6.283185307179586
+  acceleration_mean: 0.409074
+  acceleration_std: 1.04553
+  ddh_mean: 4.6e-05
+  ddh_std: 0.075032
+  raw_acceleration_clamped: false
+  raw_ddh_clamped: false
+  post_speed_clamped: true
+  post_heading_rate_clamped: true
+verification_boundaries:
+  full:
+  - map CNN
+  - past encoder
+  - prior GNN
+  - bounded latent
+  - decoder GNN
+  - decoder GRU
+  - dynamic map recropping
+  - bicycle dynamics
+  decoder_centered:
+  - fixed encoded scene
+  - bounded latent
+  - decoder GNN
+  - decoder GRU
+  - bicycle dynamics
+  reduced:
+  - fixed graph/map
+  - one or few agents
+  - one or few decoder steps
+  - selected learned output/property
+  selected: null
+formal_properties:
+- id: P-A
+  name: acceleration bounds
+  target_signal: raw unnormalized acceleration
+  threshold_status: TBD
+  recommended_initial_priority: true
+  reason: Raw acceleration is learned and not directly clamped.
+- id: P-S
+  name: speed bounds
+  target_signal: post-dynamics speed
+  threshold_status: TBD
+  construction_bound:
+  - 0.0
+  - 50.0
+  construction_bound_warning: true
+- id: P-H
+  name: heading-rate / turning bounds
+  target_signal: post-dynamics heading-rate and/or raw ddh
+  threshold_status: TBD
+  construction_bound:
+  - -6.283185307179586
+  - 6.283185307179586
+  construction_bound_warning: true
+- id: P-COLL
+  name: vehicle-vehicle collision freedom
+  threshold_status: geometry semantics TBD
+- id: P-ROAD
+  name: drivable-area constraint
+  threshold_status: formal map semantics TBD
+formal_encoding_challenges:
+- CNN and GroupNorm
+- GNN max aggregation and relative-frame transformations
+- GRU sigmoid/tanh recurrence
+- dynamic map recropping
+- exponential variance if prior included
+- sin/cos bicycle dynamics
+- variable scene graph topology
+- floating-point vs real-arithmetic semantics
+verification_method:
+  tool: null
+  tool_status: not selected
+  required_result_classes:
+  - verified
+  - counterexample
+  - unknown
+  - timeout
+  - error
+  counterexample_replay_required_when_possible: true
+  must_distinguish_formal_proof_from_no_counterexample_found: true
+claim_evidence_status:
+  P-A: not_run
+  P-S: not_run
+  P-H: not_run
+  P-COLL: not_run
+  P-ROAD: not_run
+relationships:
+  target_model: M-01
+  companion_data_card: A1-D-01
+  system: S-01
+  other_assurance_approaches:
+  - Verify the accident scenario classifier
+  - Specification-driven falsification of the collision-generation optimizer
+profile:
+  profiler: tools/profile_traffic_model_verification.py
+  measurement_status: not_run
+  measured: null
