@@ -1,0 +1,169 @@
+schema_version: '1.0'
+card_id: S-01
+card_type: system
+name: STRIVE
+full_name: Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior
+version: 1.0.0
+status: complete
+repository:
+  name: nv-tlabs/STRIVE
+  url: https://github.com/nv-tlabs/STRIVE
+  documented_revision: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  code_license: MIT
+paper:
+  venue: CVPR 2022
+  authors:
+  - Davis Rempe
+  - Jonah Philion
+  - Leonidas J. Guibas
+  - Sanja Fidler
+  - Or Litany
+  title: Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior
+purpose: Offline generation and analysis of plausible accident-prone driving scenarios using a learned multi-agent traffic
+  prior and planner-in-the-loop latent optimization.
+cards:
+  D-01:
+    type: data
+    name: nuScenes Data Card
+    path: docs/cards/data/DATA_CARD_NUSCENES_STRIVE.md
+  M-01:
+    type: model
+    name: Main Traffic Model
+    path: docs/cards/models/MODEL_CARD_TRAFFIC.md
+  C-01:
+    type: component
+    name: Initialization Optimization
+    path: docs/cards/components/COMPONENT_CARD_INITIALIZATION_OPTIMIZATION.md
+  C-02:
+    type: component
+    name: Adversarial Optimization
+    path: docs/cards/components/COMPONENT_CARD_ADVERSARIAL_OPTIMIZATION.md
+  C-03:
+    type: component
+    name: Solution Optimization
+    path: docs/cards/components/COMPONENT_CARD_SOLUTION_OPTIMIZATION.md
+  D-02:
+    type: data
+    name: Generated Scenarios
+    path: docs/cards/data/DATA_CARD_GENERATED_SCENARIOS_STRIVE.md
+  M-03:
+    type: model
+    name: Scenario Clustering
+    path: docs/cards/models/MODEL_CARD_CLUSTERING_STRIVE.md
+  M-04:
+    type: model
+    name: Accident / Scenario Classifier
+    path: docs/cards/models/MODEL_CARD_ACCIDENT_CLASSIFIER_STRIVE.md
+  F-01:
+    type: fitted_config
+    name: Planner Tuning
+    path: docs/cards/fitted_configs/FITTED_CONFIG_CARD_PLANNER_TUNING_STRIVE.md
+dependency_graph:
+  generation_chain:
+  - D-01
+  - M-01
+  - C-01
+  - C-02
+  - C-03
+  - D-02
+  analysis_chain:
+  - D-02
+  - M-03
+  - M-04
+  - F-01
+  planner_evaluation_from: D-02
+  note: The M-04 to F-01 edge is an analytical/documentation relationship for the public release; the paper's multi-mode
+    planner uses a separately described binary accident-mode classifier.
+data:
+  source: nuScenes
+  versions:
+  - trainval
+  - mini
+  raw_sensor_payload_required_for_core_workflow: false
+  metadata_and_maps_required: true
+  default_dt_seconds: 0.5
+  default_past_steps: 4
+  default_future_steps: 12
+  default_agent_types:
+  - car
+  - truck
+traffic_model:
+  family: graph conditional variational traffic model
+  default_latent_size: 32
+  default_map_feature_size: 64
+  default_past_feature_size: 64
+  default_future_feature_size: 64
+  model_output_bicycle: true
+generation:
+  feasibility_samples: 20
+  include_prior_mean: true
+  parser_default_iterations: 300
+  release_rule_based_iterations: 200
+  release_replay_iterations: 300
+  learning_rate: 0.05
+  result_partitions:
+  - adv_failed
+  - sol_failed
+  - adv_sol_success
+  vehicle_collision_iou_threshold_strictly_greater_than: 0.02
+solution:
+  optimization_future_steps: 16
+  optimization_future_seconds: 8.0
+  returned_future_steps: 12
+  returned_future_seconds: 6.0
+  vehicle_collision_buffer_m: 0.5
+clustering:
+  algorithm: sklearn.cluster.KMeans
+  feature_dimension: 4
+  k: 10
+  random_state: 0
+  interpolation_scale: 5
+  sklearn_pinned_in_requirements: false
+classification:
+  public_repo_type: cluster-based hard classification using M-03 KMeans.predict plus semantic label lookup
+  separate_public_supervised_classifier_identified: false
+  paper_accident_mode_classifier_distinct: true
+  paper_accident_mode_classifier_public_implementation_identified: false
+planner:
+  public_modes:
+  - ego replay
+  - hardcode rule-based
+  released_rule_configs:
+  - default
+  - final_tuned_val_1
+  default_rule_config_used_by_adv_gen_rule_based_cfg: default
+runtime_environment:
+  readme_tested_os: Ubuntu 18.04
+  python: '3.6'
+  pytorch: 1.9.0+cu111
+  cuda: '11.1'
+  numpy: 1.19.5
+  torch_geometric: 1.7.1
+  nuscenes_devkit: 1.1.5
+licenses:
+  source_code: MIT
+  pretrained_models_and_generated_scenarios: CC-BY-NC-SA-4.0 per STRIVE README
+  upstream_data: nuScenes terms apply
+known_release_specific_behaviors:
+- TgtMatchingLoss computes a motion-prior diagnostic but applies motion_prior_ext to trajectory matching in the released
+  total-loss expression.
+- C-02 feasibility caller passes 0.0 for candidate-agent velocity threshold despite configured feasibility_vel.
+- C-02 hardcode crash gradient uses M-01 target-node prediction while final success uses actual planner rollout.
+- C-03 optimizes target over 16 steps but returns/serializes the default 12-step horizon.
+- C-03 restores returned non-planner solution trajectories exactly from C-02 adversarial trajectories.
+- M-03 uses scikit-learn but requirements.txt does not pin scikit-learn.
+- Public M-04 is cluster-based scenario classification, distinct from the paper-level learned binary accident-mode classifier.
+- Public repository exposes final_tuned_val_1 but not the full paper 432-combination sweep implementation.
+profile:
+  profiler: tools/profile_strive_system.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - config_files
+  - documentation_files
+  - metadata_files
+  - requirements
+  - release_invariants
+  - quality_checks
+  - warnings
