@@ -1,0 +1,159 @@
+schema_version: '1.0'
+card_id: A3-D-01
+card_type: formal_assurance_data
+name: STRIVE Collision-Generation Optimizer Falsification Evidence Set
+version: 1.0.0
+status: complete_specification
+falsification_corpus_status: not_yet_materialized
+assurance_approach: Specification-driven falsification of the collision-generation optimizer
+target:
+  system: STRIVE adversarial scenario-generation pipeline
+  primary_components:
+  - C-01
+  - C-02
+  - C-03
+  traffic_model: M-01
+  rule_based_planner: M-02
+  source_data: D-01
+  generated_data: D-02
+  repository: nv-tlabs/STRIVE
+  documented_revision: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+concept_document:
+  title: Formal Assurance in STRIVE
+  example_requirements:
+  - signal: TTC
+    operator: '>'
+    threshold: 1.5
+    units: s
+    temporal_semantics: must be explicitly defined before execution
+  - signal: minimum ego separation
+    operator: '>'
+    threshold: d_min
+    units: m
+    temporal_semantics: must be explicitly defined before execution
+  counterexample_interpretation: A STRIVE-generated trajectory that violates the versioned safety requirement under independent
+    evaluation is a concrete counterexample.
+strive_search:
+  c01:
+    role: fit latent variables to source/planner initialization target
+    initial_iterations: 75
+    initial_lr: 0.1
+    hardcode_second_fit_iterations: 100
+  c02:
+    role: native adversarial collision search
+    rule_based_iterations: 200
+    replay_iterations: 300
+    released_lr: 0.05
+    early_stop: false
+    native_success_is_same_as_a3_spec_violation: false
+  c03:
+    role: search for collision-free planner solution after adversarial generation
+    success_is_formal_solvability_proof: false
+planner_paths:
+  replay:
+    uses_m02: false
+    ego_behavior: recorded future
+  rule_based:
+    uses_m02: true
+    ego_behavior: HardcodeNuscPlanner replans against generated traffic
+native_strive_partitions:
+- adv_failed
+- sol_failed
+- adv_sol_success
+recommended_falsification_outcomes:
+- counterexample
+- no_counterexample_found
+- invalid_candidate
+- timeout
+- error
+candidate_properties:
+- id: TTC-01
+  name: time-to-collision threshold
+  concept_threshold: 1.5
+  units: s
+  formalization_status: TBD
+- id: SEP-01
+  name: minimum ego/non-ego separation
+  threshold: d_min
+  units: m
+  formalization_status: TBD
+- id: COLL-01
+  name: collision freedom
+  geometry: TBD
+  formalization_status: TBD
+d02_core_fields:
+- N
+- dt
+- map
+- lw
+- sem
+- past
+- fut_init
+- fut_adv
+d02_optional_fields:
+- fut_internal_ego
+- fut_sol
+- attack_agt
+- attack_t
+- z_adv
+- z_sol
+- z_prior
+- attack_bike_prof
+case_schema:
+  required_identity:
+  - run_id
+  - seed_case_id
+  - planner_type
+  - property.property_id
+  - property.property_version
+  - strive.revision
+  - strive.traffic_model_checkpoint_sha256
+  - strive.optimizer_config_sha256
+  - artifact.scenario_sha256
+  recommended_search_fields:
+  - search.iterations
+  - search.restarts
+  - search.timeout_seconds
+  - search.random_seed
+  recommended_result_fields:
+  - result.status
+  - result.violated
+  - result.first_violation_time_s
+  - result.worst_value
+  - result.robustness
+  - result.violating_agent
+  - result.native_strive_partition
+  - result.independent_replay_confirmed
+temporal_semantics:
+  traffic_model_dt_seconds: 0.5
+  rule_based_planner_dt_seconds: 0.2
+  interpolation_required_to_be_versioned: true
+  operator_semantics_must_be_explicit: true
+interpretation_rules:
+- A native STRIVE adversarial success is not automatically an A3 specification violation.
+- An A3 TTC/separation violation may occur without native STRIVE collision success.
+- No counterexample found is not a proof of safety.
+- C-03 solution success is not a formal proof of solvability.
+- Final counterexamples should be independently re-evaluated from saved trajectories.
+limitations:
+- 'Falsification is incomplete: failure to find a violation is not proof of safety.'
+- C-02 is a local nonconvex gradient search and may miss counterexamples.
+- Search coverage is constrained by M-01 learned traffic prior.
+- Results depend on planner implementation/configuration.
+- TTC and separation specifications are incomplete until their exact semantics are frozen.
+- Discrete-time checking may miss between-sample violations unless interpolation/continuous checking is defined.
+- Generated counterexamples are synthetic and do not establish real-world frequency.
+relationships:
+  upstream:
+  - D-01
+  - M-01
+  - M-02
+  - C-01
+  - C-02
+  - C-03
+  generated_scenarios: D-02
+  companion_assurance_model_card: A3-M-01
+profile:
+  profiler: tools/profile_collision_optimizer_falsification_data.py
+  measurement_status: not_run
+  measured: null
