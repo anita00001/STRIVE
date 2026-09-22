@@ -2,426 +2,1348 @@
 
 > **Card ID:** A2-D-01  
 > **Card type:** Formal-Assurance Data Card  
-> **Status:** Skeleton  
+> **Status:** Complete specification; original classifier corpus/artifact not publicly released  
 > **Assurance approach:** Verify the Accident Scenario Classifier  
-> **Target:** STRIVE learned binary accident-mode classifier  
+> **Target:** STRIVE paper-level learned binary regular-vs-accident-prone classifier  
 > **System:** S-01 — STRIVE  
-> **Primary assurance question:** Does the classifier reliably distinguish regular from accident-prone traffic situations over a clearly defined input domain?
+> **Primary evidence sources:** nuScenes regular scenes, STRIVE-generated collision scenarios, paper/supplement classifier description, and assurance-generated robustness/counterexample cases
 
 ---
 
 ## 1. Dataset Summary
 
 ### 1.1 Dataset / evidence-set name
-<!-- Canonical name for the classifier-verification evidence set. -->
+
+**STRIVE Accident Scenario Classifier Verification Evidence Set**
+
+This card specifies the data needed to verify the learned binary classifier described in the STRIVE paper/supplement for multi-mode planner operation.
+
+The target classifier decides whether the ego vehicle is currently in:
+
+```text
+regular
+```
+
+or:
+
+```text
+accident-prone
+```
+
+traffic.
 
 ### 1.2 Assurance purpose
-<!-- Define how the dataset supports formal assurance of the learned classifier. -->
+
+The evidence set supports questions such as:
+
+- Is the classifier's decision stable under bounded perturbations of recent agent motion?
+- Are accident-prone scenes robustly prevented from switching to the regular class within a declared uncertainty domain?
+- Are regular scenes stable against unnecessary accident-mode switching?
+- Can concrete bounded perturbations be found that flip the mode-selection decision?
 
 ### 1.3 Verification target
-<!-- Exact classifier implementation/checkpoint/configuration, if available. -->
+
+The target is **not** the public M-04 cluster-label assignment path.
+
+The target is the paper-level binary classifier used by the multi-mode rule-based planner.
+
+The supplement describes it as:
+
+```text
+past 2 s trajectories for all agents
++ local map crop around each agent
+        │
+        ▼
+traffic-model-like trajectory/map processing
+        │
+        ▼
+scene graph + message passing
+        │
+        ▼
+64-D ego-node feature
+        │
+        ▼
+2-layer MLP
+        │
+        ▼
+binary regular / accident-prone classification
+```
 
 ### 1.4 Dataset role
-<!-- Natural scenes, generated accident-prone scenes, bounded perturbation domains, counterexamples. -->
+
+A2-D-01 is intended to serve as:
+
+1. **training-provenance documentation** for the classifier's regular/collision data sources;
+2. **natural verification anchors** for regular and accident-prone classes;
+3. **bounded robustness domains** around selected anchor scenes;
+4. **decision-boundary evidence** for low-margin or label-unstable scenes;
+5. **counterexample regression data** for future classifier revisions.
 
 ### 1.5 Dataset status
-<!-- Proposed / generated / frozen / validated. -->
+
+```text
+data-card specification:          complete
+public classifier source:         not identified
+public classifier checkpoint:     not identified
+original classifier train list:   not released/identified
+original classifier eval list:    not released/identified
+assurance manifest:               not yet materialized
+formal verifier:                  not yet selected
+```
+
+Because the original learned classifier artifact is not present in the inspected public STRIVE repository, exact formal verification of that original artifact requires obtaining its source/checkpoint or clearly defining and separately naming a reproduction.
 
 ---
 
 ## 2. Assurance Claim Context
 
 ### 2.1 Top-level assurance claim
-<!-- Example: within domain D, classifier output is stable/correct with respect to specified regular/accident-prone labels or robustness properties. -->
+
+A suitable claim pattern is:
+
+> For every admissible perturbation of an anchor scene within robustness domain D, the binary classifier preserves the required planner-mode decision.
+
+For an accident-prone anchor:
+
+```text
+forall x' in D(x):
+    classifier(x') = accident-prone
+```
+
+For a regular anchor:
+
+```text
+forall x' in D(x):
+    classifier(x') = regular
+```
+
+Alternative properties may target a logit or margin rather than only the hard class.
 
 ### 2.2 Safety relevance
-<!-- Classifier output determines regular vs accident-handling planner mode. -->
+
+The project concept identifies the classifier as safety-relevant because its output decides whether the planner operates in:
+
+```text
+regular mode
+```
+
+or:
+
+```text
+accident-handling mode
+```
+
+Therefore classification errors can affect which planner parameterization is used.
 
 ### 2.3 Supported subclaims
-<!-- Classification robustness, mode-selection consistency, boundary behavior. -->
+
+Depending on the target artifact and verifier, A2-D-01 can support:
+
+- local class invariance;
+- local margin bounds;
+- bounded false-negative robustness for accident-prone anchors;
+- bounded false-positive robustness for regular anchors;
+- concrete class-flip counterexamples;
+- robustness comparisons across scene categories.
 
 ### 2.4 Unsupported claims
-<!-- No direct claim of full planner/system safety. -->
+
+This data card does not establish:
+
+- that the class label is an objective real-world safety truth;
+- that accident mode guarantees collision avoidance;
+- planner safety;
+- complete STRIVE safety;
+- robustness outside the declared domain;
+- correctness of a reconstructed classifier as a substitute for the unreleased original.
 
 ### 2.5 Evidence interpretation
-<!-- Verified / counterexample / empirical correctness / unknown. -->
+
+Keep separate:
+
+```text
+observed/generated class provenance
+empirical classifier prediction
+formal robustness result
+counterexample replay result
+planner outcome
+```
+
+A scene being generated by STRIVE as a collision case is operational evidence for an accident-prone training label; it is not a universal formal statement that every nearby traffic state is unsafe.
 
 ---
 
 ## 3. Target Classifier Scope
 
-### 3.1 Classifier described in the STRIVE paper/supplement
-<!-- Learned binary classifier: regular vs accident-prone. -->
+### 3.1 Classifier described in the STRIVE supplement
+
+The learned mode classifier:
+
+- uses the previous **2 seconds** of trajectories for all agents;
+- uses local map crops around agents;
+- processes these inputs similarly to STRIVE's learned traffic model;
+- performs scene-graph message passing similarly to the traffic-model prior;
+- takes the **64-dimensional ego-node feature**;
+- applies a **2-layer MLP**;
+- outputs a binary scene classification.
 
 ### 3.2 Distinction from public M-04
-<!-- Public M-04 is cluster-based scenario labeling, not this binary classifier. -->
+
+Public M-04 documents:
+
+```text
+collision feature
+→ KMeans.predict
+→ cluster index
+→ semantic collision label
+```
+
+That workflow is not this classifier.
+
+A2-D-01 therefore uses the term:
+
+```text
+accident scenario classifier
+```
+
+for the paper-level **binary learned mode classifier**, not the public 10-way cluster assignment.
 
 ### 3.3 Model availability
-<!-- Whether classifier source/checkpoint is publicly available. -->
+
+Searches of the inspected public STRIVE repository did not identify:
+
+- classifier source code;
+- classifier checkpoint;
+- classifier training config;
+- classifier train/eval manifest.
+
+The public repository does expose the traffic model, generated scenarios, clustering, and planner evaluation/tuning code.
 
 ### 3.4 Verification boundary
-<!-- Full classifier vs fixed encoder + final MLP vs reduced subnetwork. -->
+
+Possible verification targets include:
+
+**Full classifier**
+
+```text
+trajectory/map encoders
++ graph message passing
++ 64-D ego feature
++ final 2-layer MLP
+```
+
+**Head-only classifier**
+
+```text
+bounded/fixed 64-D ego feature
++ final 2-layer MLP
+```
+
+**Reproduction**
+
+```text
+independently reimplemented classifier matching supplement description
+```
+
+A reproduction must not be reported as verification of the original learned classifier unless equivalence to the original artifact can be established.
 
 ### 3.5 Planner-mode decision boundary
-<!-- Relationship between classifier output and regular/accident-handling mode. -->
+
+The verification evidence should preserve the exact:
+
+```text
+output logits
+classification threshold
+class-to-mode mapping
+```
+
+once the target artifact is available.
+
+Without these details, only a conceptual data specification can be completed.
 
 ---
 
 ## 4. Data Sources
 
 ### 4.1 nuScenes regular traffic scenes
-<!-- Source of regular examples. -->
+
+The supplement states that regular classifier training examples come from:
+
+```text
+regular nuScenes scenarios from the training split
+```
+
+The exact number/list of regular training scenes is not specified in the inspected public release.
 
 ### 4.2 STRIVE-generated collision scenarios
-<!-- Source of accident-prone examples. -->
+
+The supplement states that accident-prone training data include:
+
+```text
+a diverse set of over 1000 collision scenarios
+```
+
+generated from:
+
+```text
+train/validation scenes
+```
+
+using variations of both:
+
+```text
+Replay planner
+Rule-based planner
+```
+
+These examples provide operational positive-class data for the binary classifier.
 
 ### 4.3 D-01 relationship
-<!-- nuScenes input representation and provenance. -->
+
+D-01 is the source of nuScenes trajectories, semantic categories, vehicle dimensions, and map context used throughout STRIVE.
+
+A faithful classifier reproduction should reuse D-01 preprocessing unless original classifier-specific preprocessing indicates otherwise.
 
 ### 4.4 D-02 relationship
-<!-- Generated scenario representation and partitions. -->
+
+D-02 documents the public/generated scenario schema.
+
+Relevant scenario information includes:
+
+```text
+past
+fut_init
+fut_adv
+map
+lw
+sem
+```
+
+plus attack/solution metadata when available.
+
+However, the public downloadable scenario bundle is not stated to be the exact >1000-example classifier training corpus.
 
 ### 4.5 Paper/supplement training-data description
-<!-- Exact training/evaluation composition once verified. -->
+
+Source-supported training composition:
+
+```text
+negative / regular class:
+    regular nuScenes training scenarios
+
+positive / accident-prone class:
+    >1000 generated collision scenarios
+    from train/validation scenes
+    generated with variations of Replay and Rule-based planners
+
+training loss:
+    binary cross entropy
+    weighted for class imbalance
+```
+
+Not source-supported from the public release:
+
+```text
+exact regular sample count
+exact class ratio
+exact scenario IDs
+exact generated-scenario list
+exact train/validation split of classifier examples
+exact classifier checkpoint
+exact random seed
+```
 
 ### 4.6 Verification-generated cases
-<!-- Perturbations, adversarial robustness cases, solver counterexamples. -->
+
+Assurance cases may extend beyond original training data:
+
+```text
+bounded trajectory perturbations
+bounded map perturbations
+decision-boundary cases
+formal counterexamples
+empirical adversarial examples
+regression cases
+```
+
+They must be tagged as assurance-generated rather than original classifier training data.
 
 ---
 
 ## 5. Ground Truth & Label Semantics
 
 ### 5.1 Regular label
-<!-- Definition and provenance. -->
+
+Operational meaning:
+
+```text
+ordinary nuScenes traffic context used as a regular-mode example
+```
+
+This is a training label/provenance category, not a formal guarantee that no accident is possible.
 
 ### 5.2 Accident-prone label
-<!-- Definition and provenance. -->
+
+Operational meaning:
+
+```text
+generated collision scenario used to represent a situation where accident-handling mode is appropriate
+```
+
+The label is tied to STRIVE scenario generation and planner behavior.
 
 ### 5.3 Generated collision label provenance
-<!-- How generated accident-prone cases acquire their class. -->
+
+Positive examples should record, where available:
+
+```text
+source nuScenes scene
+planner type
+planner configuration
+scenario-generation run
+adversarial-success status
+colliding agents
+collision time
+scenario partition
+```
 
 ### 5.4 Label noise / ambiguity
-<!-- Difficult or borderline traffic situations. -->
+
+Potential ambiguity includes:
+
+- collision cases that are effectively unavoidable;
+- generated cases with realism concerns;
+- borderline cases where planner mode choice is not clearly binary;
+- regular log-replay scenes that contain unavoidable planner failures;
+- changes in label meaning across planner variants.
 
 ### 5.5 Formal label vs operational label
-<!-- Separate classifier training labels from formal safety truth. -->
+
+Do not equate:
+
+```text
+accident-prone training label
+```
+
+with:
+
+```text
+formal proof that the traffic situation is unsafe
+```
+
+Likewise, `regular` does not mean formally safe.
+
+Formal verification should generally target **classifier robustness relative to a declared anchor label/specification**, rather than pretending the training labels are universal safety truth.
 
 ### 5.6 Missing real-world formal ground truth
-<!-- No universal label proving a scene is formally accident-prone. -->
+
+The project concept explicitly notes that recorded trajectories/maps provide only partial ground truth and that STRIVE lacks universal real-world labels for formal safety/unsafety/solvability.
+
+That same limitation applies to the binary classifier's class semantics.
 
 ---
 
 ## 6. Classifier Input Schema
 
-### 6.1 Past trajectory history
-<!-- Past two seconds of trajectories for all agents. -->
+### 6.1 Case identity
 
-### 6.2 Agent state representation
-<!-- Exact trajectory/state fields. -->
+Recommended:
 
-### 6.3 Agent attributes
-<!-- length/width if used. -->
+```yaml
+case_id: string
+partition: development | verification | regression
+case_kind: natural_regular | generated_accident | perturbation | counterexample | regression
+anchor_label: regular | accident-prone
+source_kind: nuscenes | strive_generated | assurance_generated
+```
 
-### 6.4 Semantic class
-<!-- Agent category representation. -->
+### 6.2 Past trajectory history
 
-### 6.5 Local map input
-<!-- Map crop / map feature representation. -->
+The supplement specifies:
 
-### 6.6 Scene graph
-<!-- Agent interactions / edge structure. -->
+```text
+previous 2 seconds
+for all agents in the scene
+```
 
-### 6.7 Visibility / masks
-<!-- Missing observations. -->
+A faithful reproduction should preserve the same sampling cadence as the original classifier if/when confirmed.
+
+Because STRIVE's main traffic representation uses 0.5-second steps, a likely compatible representation is four past steps, but this card does **not** claim that the unreleased classifier necessarily used exactly the same serialized tensor without the original implementation.
+
+### 6.3 Agent state representation
+
+Recommended provenance should retain physical states sufficient to reconstruct the classifier input:
+
+```text
+position
+heading
+speed
+time
+visibility
+```
+
+If a reproduction explicitly uses the M-01/D-01 state:
+
+```text
+x, y, heading_x, heading_y, speed, heading_change_rate
+```
+
+that choice must be documented as a reproduction design unless confirmed from the original classifier source.
+
+### 6.4 Agent attributes
+
+Record:
+
+```text
+length
+width
+```
+
+when used by the classifier/reproduction.
+
+### 6.5 Semantic class
+
+Record each agent's semantic category and the one-hot/class encoding actually passed to the model.
+
+### 6.6 Local map input
+
+The supplement states that local map crops are used around agents.
+
+The assurance record should preserve either:
+
+```text
+exact raster crop
+```
+
+or:
+
+```text
+map source + crop parameters + reproducible hash
+```
+
+### 6.7 Scene graph
+
+If the classifier follows traffic-model prior processing, the evidence should preserve:
+
+```text
+agent ordering
+edge_index
+ego node index
+semantic labels
+relative pose convention
+```
+
+### 6.8 Visibility / masks
+
+Missing history must be represented exactly as the target classifier expects.
+
+If the target artifact cannot be obtained, any reproduction policy must be documented explicitly.
 
 ---
 
 ## 7. Classifier Output Schema
 
-### 7.1 Binary class
-<!-- regular / accident-prone. -->
+### 7.1 Hard class
 
-### 7.2 Logit / probability
-<!-- If available from implementation. -->
+```text
+regular
+accident-prone
+```
 
-### 7.3 Mode-selection output
-<!-- Which planner mode is selected. -->
+### 7.2 Continuous score
 
-### 7.4 Verification status
-<!-- verified / counterexample / unknown / timeout. -->
+If available, preserve:
+
+```text
+logit(s)
+probability/score
+decision threshold
+margin to threshold
+```
+
+For formal robustness, logits/margins are preferable to storing only the hard class.
+
+### 7.3 Planner-mode output
+
+Record the downstream mapping:
+
+```text
+regular class       → regular planner mode
+accident-prone class → accident-handling mode
+```
+
+for the exact target configuration.
+
+### 7.4 Verification result
+
+Recommended:
+
+```yaml
+property_id: string
+property_version: string
+status: verified | counterexample | unknown | timeout | error | not_run
+verifier: string
+verifier_version: string
+runtime_seconds: float
+```
 
 ### 7.5 Counterexample payload
-<!-- Input, predicted class, expected/spec class, margin/logit. -->
+
+Store:
+
+```text
+anchor case
+allowed perturbation domain
+concrete perturbed input
+anchor label
+original classifier output
+perturbed classifier output
+logit/margin if available
+changed planner mode
+formal property violated
+replay result
+```
 
 ---
 
 ## 8. Candidate Assurance Properties
 
-### 8.1 Label robustness
-<!-- Output class remains invariant under bounded input perturbations. -->
+### 8.1 C-FN — Accident-prone non-demotion
 
-### 8.2 Margin robustness
-<!-- Classification margin stays above/below threshold. -->
+For an accident-prone anchor:
 
-### 8.3 Accident-prone non-demotion
-<!-- Accident-prone cases should not become regular under allowed perturbations. -->
+```text
+forall x' in D(x):
+    class(x') = accident-prone
+```
 
-### 8.4 Regular-case stability
-<!-- Regular cases should not spuriously switch modes under small perturbations. -->
+This targets false-negative robustness: allowed perturbations should not suppress accident-handling mode.
 
-### 8.5 Map-perturbation robustness
-<!-- Stability to bounded map-input variation. -->
+### 8.2 C-FP — Regular-case stability
 
-### 8.6 Agent-trajectory perturbation robustness
-<!-- Position/speed/history perturbation robustness. -->
+For a regular anchor:
 
-### 8.7 Combined scene robustness
-<!-- Joint multi-agent perturbations. -->
+```text
+forall x' in D(x):
+    class(x') = regular
+```
+
+This targets unnecessary mode switching.
+
+### 8.3 C-MARGIN — Decision-margin bound
+
+If a scalar accident score/logit is available:
+
+```text
+accident anchor:
+    score(x') >= threshold + margin
+
+regular anchor:
+    score(x') <= threshold - margin
+```
+
+This is stronger than hard-label invariance when a meaningful score is exposed.
+
+### 8.4 C-TRAJ — Trajectory perturbation robustness
+
+Perturb:
+
+```text
+agent positions
+heading
+speed
+history
+```
+
+within explicit physical bounds while holding map/topology fixed or separately bounded.
+
+### 8.5 C-MAP — Map-input robustness
+
+Check stability under declared map uncertainty/noise.
+
+This requires a meaningful perturbation model; arbitrary pixel noise need not correspond to realistic map uncertainty.
+
+### 8.6 C-JOINT — Joint scene robustness
+
+Bound multiple agents simultaneously.
+
+This better reflects multi-agent uncertainty but is harder to verify.
+
+### 8.7 C-DROP — Observation robustness
+
+If the runtime system can experience missing tracks/history, define a property for permitted observation loss/masking.
+
+This should only be included if the target classifier preprocessing supports such inputs.
 
 ---
 
 ## 9. Assurance-Oriented Label Policy
 
 ### 9.1 False-negative significance
-<!-- Accident-prone -> regular error may suppress accident-handling mode. -->
+
+An accident-prone-to-regular flip can prevent activation of accident-handling planner parameters.
+
+For assurance purposes, this error may reasonably receive higher priority than ordinary average classification accuracy.
 
 ### 9.2 False-positive significance
-<!-- Regular -> accident-prone may cause unnecessary mode switching. -->
+
+A regular-to-accident-prone flip may cause unnecessary use of accident-mode parameters.
+
+The STRIVE paper's planner-improvement results show that planner modes can trade regular-driving behavior against challenging-scenario performance, so false positives should still be measured rather than treated as harmless.
 
 ### 9.3 Asymmetric assurance priority
-<!-- Whether false negatives should receive stronger requirements. -->
+
+A possible project policy is:
+
+```text
+primary:
+    C-FN on accident-prone anchors
+
+secondary:
+    C-FP on regular anchors
+```
+
+This is a proposed assurance prioritization, not a fact specified by STRIVE.
+
+If adopted, it must be documented as a project design decision.
 
 ### 9.4 Borderline / abstain region
-<!-- Optional uncertainty/abstention handling if included. -->
+
+The original classifier is described as binary; no public evidence was found for an abstain class.
+
+A reproduction may introduce abstention only as a new design and must not attribute it to original STRIVE.
 
 ### 9.5 Threshold selection
-<!-- Classification threshold and versioning. -->
+
+The exact classification threshold is not available in the inspected public release.
+
+It must be obtained from the original artifact or explicitly selected/versioned for a reproduction.
 
 ---
 
 ## 10. Verification Domain
 
 ### 10.1 Natural anchor scenes
-<!-- Recorded/generated source scenes used to center domains. -->
+
+Use two anchor families:
+
+```text
+regular:
+    nuScenes regular traffic scenes
+
+accident-prone:
+    STRIVE-generated collision scenes
+```
 
 ### 10.2 Number of agents
-<!-- Fixed or bounded. -->
+
+Formal domains should fix the number of agents unless the verifier supports variable graph size.
+
+Record:
+
+```text
+N
+ego index
+agent ordering
+```
 
 ### 10.3 History bounds
-<!-- Position/speed/heading perturbations. -->
+
+For each symbolic trajectory variable, define physical perturbation bounds such as:
+
+```text
+Δx
+Δy
+Δheading
+Δspeed
+```
+
+The card does not prescribe numeric ε values; they must be independently justified and versioned.
 
 ### 10.4 Map bounds
-<!-- Fixed raster / bounded pixels / fixed map feature. -->
+
+Options:
+
+- fixed map raster;
+- bounded map feature;
+- realistic semantic/map uncertainty model.
+
+A fixed map is a reasonable initial scope for trajectory-robustness verification.
 
 ### 10.5 Graph-topology assumptions
-<!-- Fixed adjacency or variable graph. -->
+
+A tractable initial formal target may keep:
+
+```text
+edge_index fixed
+agent count fixed
+semantic labels fixed
+```
+
+A result under fixed topology does not cover track appearance/disappearance or graph changes.
 
 ### 10.6 Class-specific domains
-<!-- Regular-anchor vs accident-anchor domains. -->
+
+Keep separate domain specifications for:
+
+```text
+regular anchors
+accident-prone anchors
+```
+
+because the relevant property direction differs.
 
 ---
 
 ## 11. Sampling & Case Construction
 
 ### 11.1 Natural regular cases
-<!-- nuScenes-derived. -->
 
-### 11.2 Natural/generated accident-prone cases
-<!-- STRIVE-generated collision cases. -->
+Source from nuScenes regular scenes.
 
-### 11.3 Boundary cases
-<!-- Classifier-logit/margin near decision threshold. -->
+For final assurance results, use a frozen set distinct from any data used to train or tune a reproduction where feasible.
+
+### 11.2 Generated accident-prone cases
+
+Use collision scenarios with clear provenance.
+
+If reconstructing the paper training distribution, include variations from both:
+
+```text
+Replay
+Rule-based
+```
+
+planner scenario generation.
+
+### 11.3 Decision-boundary cases
+
+If the classifier artifact is available, rank anchors by:
+
+```text
+absolute margin to decision threshold
+```
+
+Low-margin examples are high-value robustness domains.
 
 ### 11.4 Perturbed cases
-<!-- Controlled trajectory/map perturbations. -->
+
+Perturbations should correspond to plausible uncertainty or domain variation rather than arbitrary tensor noise.
+
+Store:
+
+```text
+perturbed variables
+norm/interval
+units
+center case
+```
 
 ### 11.5 Counterexample-directed cases
-<!-- Cases found by verifier/falsifier. -->
+
+A found class flip should:
+
+1. be replayed;
+2. be stored;
+3. be added to regression;
+4. retain the original anchor and property version.
 
 ### 11.6 Hard-negative / hard-positive cases
-<!-- Near-boundary misclassification cases. -->
+
+Recommended categories:
+
+```text
+accident-prone predicted regular
+regular predicted accident-prone
+correct but near-boundary accident-prone
+correct but near-boundary regular
+```
 
 ---
 
 ## 12. Partitioning
 
-### 12.1 Training provenance partition
-<!-- Data reportedly used to train classifier. -->
+### 12.1 Original training provenance
+
+Known from supplement:
+
+```text
+regular:
+    nuScenes training split
+
+accident-prone:
+    >1000 generated collision scenarios
+    generated from train/val scenes
+```
+
+Exact original membership is unavailable in the public release.
 
 ### 12.2 Development assurance partition
-<!-- Property/encoding development. -->
+
+Use for:
+
+- reproducing preprocessing;
+- debugging formal encoding;
+- choosing tractable graph sizes;
+- validating properties.
 
 ### 12.3 Frozen verification partition
-<!-- Final reported assurance domains. -->
+
+Freeze before final reporting:
+
+```text
+case IDs
+labels/provenance
+perturbation domains
+property versions
+classifier artifact
+```
 
 ### 12.4 Regression partition
-<!-- Counterexamples and prior failures. -->
+
+Contains:
+
+- replay-confirmed class flips;
+- prior formal counterexamples;
+- difficult timeout domains;
+- known implementation edge cases.
 
 ### 12.5 Leakage controls
-<!-- Keep final assurance evidence independent from tuning where possible. -->
+
+If a classifier reproduction is trained:
+
+- do not select final verification cases based on its training loss;
+- keep final verification anchors separate when practical;
+- disclose any unavoidable reuse of generated scenes.
 
 ---
 
 ## 13. Data Transformations
 
 ### 13.1 Trajectory normalization
-<!-- Exact preprocessing. -->
+
+Use the exact original classifier normalization if obtained.
+
+For a reconstruction modeled after M-01, record the chosen D-01/M-01 normalizer and label it as reconstruction behavior.
 
 ### 13.2 Coordinate-frame transformation
-<!-- Global/local frame behavior. -->
+
+The supplement says classifier inputs are processed similarly to the traffic model.
+
+M-01 encodes past trajectories in a local frame anchored at the last past state.
+
+A reproduction may follow this design, but the original classifier source is required to confirm exact equivalence.
 
 ### 13.3 Map preprocessing
-<!-- Crop/raster/encoder. -->
+
+Record:
+
+```text
+source map
+crop center
+crop dimensions
+channels
+normalization
+encoder input hash
+```
+
+where possible.
 
 ### 13.4 Graph construction
-<!-- Nodes/edges/order. -->
+
+Record:
+
+```text
+node ordering
+ego node
+edge_index
+semantic representation
+relative-pose convention
+```
 
 ### 13.5 Fixed-length history
-<!-- Two-second input representation. -->
+
+The source-supported temporal input is:
+
+```text
+past 2 seconds
+```
+
+Exact sample count/cadence must be bound to the classifier implementation once available.
 
 ### 13.6 Verifier-specific abstraction
-<!-- Fixed graph/map encoding, network simplification, etc. -->
+
+If the full encoder is not verified, record reductions such as:
+
+```text
+fixed trajectory feature
+fixed map feature
+fixed 64-D ego feature
+head-only verification
+```
 
 ---
 
 ## 14. Quantitative Dataset Profile
 
-### 14.1 Total cases
-<!-- To be measured. -->
+The original classifier corpus cannot currently be fully profiled from the public release.
 
-### 14.2 Regular vs accident-prone balance
-<!-- To be measured. -->
+### 14.1 Known source-level quantities
 
-### 14.3 Source distribution
-<!-- nuScenes vs generated scenarios. -->
+Supported by the supplement:
 
-### 14.4 Agent-count distribution
-<!-- To be measured. -->
+```text
+accident-prone generated training examples:
+    over 1000
 
-### 14.5 Map / scene distribution
-<!-- To be measured. -->
+regular examples:
+    from nuScenes training split
+    exact count not specified here
 
-### 14.6 Classifier-margin distribution
-<!-- If logits/probabilities available. -->
+generated source scenes:
+    train/val
 
-### 14.7 Counterexample distribution
-<!-- By class/property/perturbation type. -->
+generated planner families:
+    Replay
+    Rule-based
+```
+
+### 14.2 Required assurance-corpus statistics
+
+Once materialized, report:
+
+```text
+total cases
+regular count
+accident-prone count
+cases by partition
+cases by source
+cases by planner family
+cases by generated scenario partition
+cases by map
+agent-count distribution
+```
+
+### 14.3 Decision statistics
+
+If classifier outputs are available:
+
+```text
+accuracy
+false-negative count/rate
+false-positive count/rate
+margin distribution
+low-margin cases
+```
+
+These are empirical diagnostics, not formal proof.
+
+### 14.4 Formal-result statistics
+
+Report:
+
+```text
+domains verified
+counterexamples
+unknown
+timeouts
+errors
+```
+
+separately by anchor class/property.
+
+### 14.5 Counterexample statistics
+
+Report:
+
+```text
+formal class flips
+replay-confirmed flips
+spurious abstraction cases
+perturbation magnitudes
+source class
+```
 
 ---
 
 ## 15. Coverage Strategy
 
 ### 15.1 Class coverage
-<!-- Regular and accident-prone. -->
 
-### 15.2 Scenario-type coverage
-<!-- Generated collision modes / map contexts / interaction geometries. -->
+Both:
 
-### 15.3 Decision-boundary coverage
-<!-- Focus on low-margin examples. -->
+```text
+regular
+accident-prone
+```
 
-### 15.4 Perturbation coverage
-<!-- Position/speed/heading/map perturbations. -->
+must be represented.
+
+### 15.2 Planner-generation coverage
+
+For accident-prone anchors, retain planner-generation provenance:
+
+```text
+Replay
+Rule-based
+```
+
+when available.
+
+### 15.3 Scenario-type coverage
+
+Where collision taxonomy is available, use M-03/M-04 labels as **analysis strata**, not as the binary classifier's ground truth.
+
+This can help ensure robustness cases cover different collision geometries.
+
+### 15.4 Decision-boundary coverage
+
+Prioritize low-margin examples for local verification.
+
+Also retain high-margin anchors to compare robustness radius.
 
 ### 15.5 Agent-count coverage
-<!-- Small to dense scenes. -->
+
+Measure performance and verification tractability across small and dense scenes.
 
 ### 15.6 Failure-mode coverage
-<!-- False negatives / false positives / unstable modes. -->
+
+Track:
+
+```text
+false negatives
+false positives
+class flips under trajectory perturbation
+class flips under map perturbation
+joint perturbation failures
+```
 
 ---
 
 ## 16. Validation & Quality Assurance
 
 ### 16.1 Schema validation
-<!-- Required fields and tensor shapes. -->
 
-### 16.2 Label validation
-<!-- Check regular/accident-prone provenance. -->
+Reject or flag:
+
+- duplicate case IDs;
+- invalid class labels;
+- unknown source type;
+- missing artifact hash;
+- inconsistent trajectory history;
+- missing domain specification for formal runs.
+
+### 16.2 Label provenance validation
+
+Each label must identify whether it comes from:
+
+```text
+nuScenes regular-source policy
+STRIVE generated collision policy
+manual review
+reproduction rule
+other
+```
 
 ### 16.3 Input reproduction
-<!-- Reproduce exact classifier input preprocessing. -->
+
+If the original classifier becomes available, concrete A2-D-01 cases must reproduce its exact tensors before formal encoding begins.
 
 ### 16.4 Classifier replay
-<!-- Re-run original classifier on every concrete case. -->
+
+Every concrete case should preserve:
+
+```text
+hard class
+logit/score if available
+threshold
+mode-selection result
+```
+
+from executable inference.
 
 ### 16.5 Counterexample replay
-<!-- Verify formal counterexamples against executable classifier. -->
+
+Formal counterexamples should be replayed against the executable classifier.
+
+Mark any non-reproducing violation as abstraction-only/spurious pending analysis.
 
 ### 16.6 Numeric tolerance
-<!-- Formal model vs runtime differences. -->
+
+Store formal-vs-runtime output differences for near-boundary cases.
 
 ---
 
 ## 17. Known Limitations
 
-### 17.1 Classifier public-release availability
-<!-- Learned binary classifier may not be present in public repository. -->
+### 17.1 Original classifier artifact unavailable
 
-### 17.2 Label ambiguity
-<!-- Accident-prone is an operational class, not universal formal truth. -->
+The largest current limitation is that the inspected public STRIVE release does not provide the learned binary classifier implementation/checkpoint.
 
-### 17.3 Generated-data dependence
-<!-- Accident-prone examples inherit STRIVE generation assumptions. -->
+Therefore this project must either:
 
-### 17.4 Class imbalance
-<!-- Potential training/evaluation imbalance. -->
+1. obtain the original artifact;
+2. verify only a formally specified surrogate/reproduction;
+3. narrow the project to data/property design until the target becomes available.
 
-### 17.5 Distribution shift
-<!-- nuScenes/generated data vs deployment. -->
+### 17.2 Exact original training corpus unavailable
 
-### 17.6 Formal-domain restriction
-<!-- Proof applies only to bounded domains. -->
+Although the supplement describes the sources, the exact classifier training example list is not released.
 
-### 17.7 Full-network tractability
-<!-- GNN/map encoder/MLP complexity. -->
+### 17.3 Label ambiguity
+
+`regular` and `accident-prone` are operational planner-mode classes, not universal ontological safety labels.
+
+### 17.4 Generated-data dependence
+
+Positive-class examples inherit assumptions and biases from:
+
+- M-01;
+- C-01/C-02/C-03 generation;
+- attacked planner variants;
+- scenario-success filtering.
+
+### 17.5 Class imbalance
+
+The supplement explicitly states that weighted binary cross entropy is used because regular and collision data are imbalanced.
+
+The exact class counts/weight are not available in the inspected public release.
+
+### 17.6 Distribution shift
+
+Verification on nuScenes/generated STRIVE data does not establish robustness in unseen cities, sensors, maps, tracking errors, or deployment conditions.
+
+### 17.7 Formal-domain restriction
+
+A robustness proof covers only the declared perturbation region, fixed graph assumptions, and included model boundary.
 
 ---
 
 ## 18. Safety & Assurance Interpretation
 
 ### 18.1 Meaning of a verified robustness property
-<!-- Scope-qualified stability claim. -->
+
+Example acceptable statement:
+
+> For classifier artifact X and accident-prone anchor Y, class `accident-prone` is invariant for all trajectory perturbations in domain D under formal encoding E.
+
+This is not the same as saying the scene is objectively unsafe.
 
 ### 18.2 Meaning of a counterexample
-<!-- Concrete bounded perturbation causing unsafe/misclassified mode. -->
+
+A replay-confirmed class flip shows that the mode decision is not robust over the stated domain.
 
 ### 18.3 False-negative interpretation
-<!-- Accident-prone input classified regular. -->
+
+Operationally:
+
+```text
+accident-prone anchor
+→ classifier outputs regular
+→ regular planner mode selected
+```
+
+This is a safety-relevant mode-selection failure under the project's classifier semantics.
 
 ### 18.4 False-positive interpretation
-<!-- Regular input classified accident-prone. -->
+
+Operationally:
+
+```text
+regular anchor
+→ classifier outputs accident-prone
+→ accident-handling planner mode selected
+```
+
+This may affect regular-driving performance, but it is not equivalent to a collision.
 
 ### 18.5 System-level inference limits
-<!-- Classifier assurance does not prove planner safety. -->
+
+Even perfect binary classification does not prove:
+
+- accident-mode planner success;
+- collision avoidance;
+- system-wide STRIVE correctness.
 
 ---
 
 ## 19. Reproducibility & Provenance
 
 ### 19.1 Classifier artifact identity
-<!-- Checkpoint/source hash. -->
+
+Required once available:
+
+```text
+source revision
+checkpoint SHA-256
+model/config hash
+class threshold
+class ordering
+```
 
 ### 19.2 STRIVE revision
-<!-- Source revision. -->
+
+Documentation baseline:
+
+```text
+b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+```
 
 ### 19.3 Training-data provenance
-<!-- Natural/generated data versions. -->
+
+Record whether a case is:
+
+```text
+regular nuScenes training
+generated collision train-source
+generated collision val-source
+assurance-only
+```
 
 ### 19.4 Verification dataset manifest
-<!-- Case IDs/domains/properties. -->
+
+Recommended JSONL manifest with:
+
+```text
+case identity
+label/provenance
+classifier artifact
+domain
+property
+formal result
+replay result
+```
 
 ### 19.5 Property specification version
-<!-- Robustness/label/margin properties. -->
+
+Required for each robustness claim.
 
 ### 19.6 Verifier/tool version
-<!-- Once selected. -->
+
+Required once selected.
 
 ### 19.7 Random seeds
-<!-- Sampling/falsification. -->
+
+Record for:
+
+- generated scenario selection;
+- perturbation sampling;
+- falsification;
+- reproduction training.
 
 ### 19.8 Generated-case lineage
-<!-- Parent scene / STRIVE scenario / perturbation. -->
+
+Preserve:
+
+```text
+source nuScenes scene
+scenario JSON identity/hash
+planner family
+generation config
+partition
+```
+
+when available.
 
 ---
 
@@ -441,47 +1363,90 @@ Approach 2 — Verify the Accident Scenario Classifier
 ```
 
 ### 20.3 Companion assurance model card
-<!-- Future A2-M-01 model card. -->
+
+Planned:
+
+```text
+A2-M-01 — STRIVE Accident Scenario Classifier Verification Model Card
+```
 
 ### 20.4 Relationship to M-04
-<!-- Explicitly distinguish public cluster classifier from paper-level learned binary accident-mode classifier. -->
+
+M-04 and A2-D-01 refer to different classifiers:
+
+```text
+M-04 public workflow:
+    10-way collision clustering/assignment
+
+A2 target:
+    learned binary regular vs accident-prone mode classifier
+```
+
+M-03/M-04 cluster labels can optionally be used as analysis strata for A2-D-01, but they are not the binary target label.
 
 ### 20.5 Planner-tuning relationship
-<!-- Binary classifier determines regular vs accident-handling planner mode in paper-level workflow. -->
+
+The binary classifier belongs to the paper-level multi-mode planner improvement described alongside F-01.
+
+It selects between regular and accident-handling planner modes.
+
+The public `final_tuned_val_1` artifact does not by itself reconstruct this multi-mode classifier system.
 
 ---
 
 ## 21. Terms of Art
 
 ### 21.1 Regular
-<!-- Operational classifier class. -->
+
+Operational binary class associated with ordinary nuScenes driving contexts and regular planner mode.
 
 ### 21.2 Accident-prone
-<!-- Operational classifier class. -->
+
+Operational binary class associated with generated collision/challenging traffic contexts and accident-handling mode.
 
 ### 21.3 Mode selector
-<!-- Classifier output controls planner operating mode. -->
 
-### 21.4 Robustness domain
-<!-- Allowed bounded perturbation set. -->
+A classifier whose class output selects a planner operating mode.
 
-### 21.5 Classification margin
-<!-- Logit/probability distance from threshold. -->
+### 21.4 Anchor case
 
-### 21.6 Counterexample
-<!-- In-domain input violating the specified classification/robustness property. -->
+A concrete regular or accident-prone scene around which a bounded verification domain is defined.
+
+### 21.5 Robustness domain
+
+The set of allowed perturbations around an anchor case.
+
+### 21.6 Classification margin
+
+Distance between a continuous classifier score/logit and its decision boundary, under the chosen output convention.
+
+### 21.7 Counterexample
+
+An in-domain input violating a robustness or class-preservation property.
+
+### 21.8 Reproduction
+
+An independently implemented classifier based on published description. It is not automatically identical to the original STRIVE classifier.
 
 ---
 
 ## 22. References
 
-<!-- Formal Assurance in STRIVE project concept PDF -->
-<!-- STRIVE paper and supplementary material -->
-<!-- D-01 nuScenes Data Card -->
-<!-- D-02 Generated Scenarios Data Card -->
-<!-- M-04 public Scenario Classifier card, with distinction caveat -->
-<!-- F-01 Planner Tuning card -->
-<!-- selected verifier/tool references once decided -->
+1. **Formal Assurance in STRIVE** — project concept document. It identifies the learned binary regular/accident-prone classifier as safety-relevant because its output selects regular or accident-handling planner mode.
+
+2. Davis Rempe, Jonah Philion, Leonidas J. Guibas, Sanja Fidler, Or Litany. **Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior.** CVPR 2022.
+
+3. STRIVE supplementary material, Appendix B.5 — learned mode classifier description and training-data summary.
+
+4. STRIVE public repository:  
+   `https://github.com/nv-tlabs/STRIVE`
+
+5. Existing cards:
+   - D-01 — STRIVE nuScenes Data Card
+   - D-02 — STRIVE Generated Scenarios Data Card
+   - M-04 — STRIVE Accident / Scenario Classifier Card
+   - F-01 — STRIVE Planner Tuning Fitted-Config Card
+   - S-01 — STRIVE System Card
 
 ---
 
@@ -489,4 +1454,4 @@ Approach 2 — Verify the Accident Scenario Classifier
 
 | Version | Date | Change |
 |---|---|---|
-| 0.1.0 | TBD | Initial Approach-2 accident-scenario-classifier verification data-card skeleton |
+| 1.0.0 | 2026-09-21 | Completed Approach-2 classifier-verification data specification, including binary label provenance, regular/generated training sources, robustness-domain schema, asymmetric failure analysis, artifact-availability gap, and counterexample evidence requirements. |

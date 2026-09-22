@@ -1,0 +1,122 @@
+schema_version: '1.0'
+card_id: A2-D-01
+card_type: formal_assurance_data
+name: STRIVE Accident Scenario Classifier Verification Evidence Set
+version: 1.0.0
+status: complete_specification
+assurance_approach: Verify the accident scenario classifier
+target:
+  type: paper-level learned binary mode classifier
+  classes:
+  - regular
+  - accident-prone
+  public_m04_is_same_target: false
+  public_original_source_identified: false
+  public_original_checkpoint_identified: false
+  source_revision_checked: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+source_description:
+  history_seconds: 2
+  input_agents: all agents in scene
+  local_map_crops: true
+  traffic_model_like_processing: true
+  scene_graph_message_passing: true
+  ego_output_feature_size: 64
+  classification_head: 2-layer MLP
+  output: binary scene classification
+training_data_from_supplement:
+  regular:
+    source: regular nuScenes scenarios from training split
+    exact_count_publicly_specified: false
+  accident_prone:
+    source: generated collision scenarios
+    count_description: over 1000
+    source_splits:
+    - train
+    - validation
+    planner_variations:
+    - Replay
+    - Rule-based
+  loss: binary cross entropy weighted for class imbalance
+  exact_class_weight_publicly_specified: false
+  exact_training_manifest_publicly_identified: false
+evidence_sources:
+- nuScenes regular scenarios
+- STRIVE-generated collision scenarios
+- paper/supplement classifier description
+- classifier artifact if obtained
+- assurance-generated perturbation domains
+- formal/empirical counterexamples
+label_semantics:
+  regular: operational mode-selection class for ordinary traffic context
+  accident-prone: operational mode-selection class for generated/challenging collision context
+  formal_real_world_safety_truth: false
+candidate_properties:
+- id: C-FN
+  name: accident-prone non-demotion
+  anchor_class: accident-prone
+  property: class remains accident-prone over bounded domain
+  priority: candidate primary
+- id: C-FP
+  name: regular-case stability
+  anchor_class: regular
+  property: class remains regular over bounded domain
+  priority: candidate secondary
+- id: C-MARGIN
+  name: classification margin robustness
+  requires_continuous_output: true
+- id: C-TRAJ
+  name: trajectory perturbation robustness
+- id: C-MAP
+  name: map perturbation robustness
+- id: C-JOINT
+  name: joint multi-agent robustness
+recommended_partitions:
+  development: encoding/property development
+  verification: frozen final assurance anchors/domains
+  regression: counterexamples and historically difficult cases
+case_schema:
+  required:
+  - case_id
+  - partition
+  - case_kind
+  - anchor_label
+  - source_kind
+  - property.property_id
+  - property.property_version
+  artifact_fields_required_when_classifier_available:
+  - classifier.checkpoint_sha256
+  - classifier.source_revision
+  - classifier.config_sha256
+  recommended_source_fields:
+  - source_scene_id
+  - source_sample_id
+  - source_split
+  - planner_family
+  - scenario_id
+  - scenario_sha256
+  recommended_result_fields:
+  - prediction.class
+  - prediction.score
+  - prediction.threshold
+  - verification.status
+  - verification.verifier
+  - verification.runtime_seconds
+  - replay.status
+limitations:
+- Original learned binary classifier source/checkpoint was not identified in the public repository.
+- Exact original training/evaluation manifests are not publicly identified.
+- Regular/accident-prone are operational mode-selection labels rather than formal real-world safety truth.
+- Positive-class data inherit STRIVE scenario-generation and planner biases.
+- The supplement states class imbalance and weighted BCE but does not expose exact class weights in the inspected public release.
+- Any formal proof applies only to the declared bounded domain and encoded model boundary.
+relationships:
+  upstream:
+  - D-01
+  - D-02
+  public_cluster_classifier_card: M-04
+  planner_tuning_card: F-01
+  companion_assurance_model_card: A2-M-01
+profile:
+  profiler: tools/profile_accident_classifier_verification_data.py
+  measurement_status: not_run
+  measured: null
