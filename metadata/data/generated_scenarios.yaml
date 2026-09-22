@@ -1,0 +1,131 @@
+schema_version: '1.0'
+card_id: D-02
+card_type: data
+name: STRIVE Generated Scenarios
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-01
+  - M-01
+  - C-01
+  - C-02
+  - C-03
+  downstream:
+  - M-03
+  - M-04
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  repository_revision_documented: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  paper: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  serializer: src/utils/scenario_gen.py::prepare_output_dict
+  generator: src/adv_scenario_gen.py
+  evaluator: src/eval_adv_gen.py
+  clustering: src/cluster_scenarios.py
+dataset:
+  unit: one JSON scenario file
+  filename_pattern: scene_%04d.json
+  local_root_pattern: <generation_out>/scenario_results
+  public_recommended_path: data/strive_scenarios
+  derived_from_nuscenes: true
+  synthetic_generated_scenarios: true
+  default_dt_seconds: 0.5
+  default_saved_future_steps: 12
+  default_saved_future_seconds: 6.0
+  default_past_steps: 4
+  main_agent_types:
+  - car
+  - truck
+public_release:
+  readme_description: Generated scenarios from paper Sections 5.1/5.2 where both adversarial and solution optimizations
+    succeeded.
+  success_only: true
+  exact_bundle_count_in_readme: null
+  clustering_source_note: Provided paper clustering was fit on over 400 scenarios from various nuScenes subsets and many
+    rule-based planner versions; this is not asserted as the downloadable bundle size.
+partitions:
+  adv_failed:
+    adversarial_success: false
+    solution_attempted: false
+    solution_success: null
+  sol_failed:
+    adversarial_success: true
+    solution_attempted: true
+    solution_success: false
+  adv_sol_success:
+    adversarial_success: true
+    solution_attempted: true
+    solution_success: true
+schema:
+  core_fields:
+    N: integer agent count
+    dt: float seconds per step
+    map: string map identifier
+    lw: '[N,2] unnormalized length/width'
+    sem: '[N,C] semantic one-hot vectors'
+    past: '[N,PT,6] unnormalized source past states'
+    fut_init: '[N,FT,4] unnormalized initialization future'
+    fut_adv: '[N,FT,4] unnormalized adversarial future'
+  conditional_fields:
+    fut_internal_ego: '[FT,4] M-01 internal target/planner prediction when supplied'
+    fut_sol: '[N,FT,4] solution future when C-03 attempted'
+    attack_agt: integer local attacker index
+    attack_t: integer attack timestep
+    z_adv: '[N,D] adversarial latent'
+    z_sol: '[N,D] solution latent when C-03 attempted'
+    z_prior.mean: '[N,D] conditional prior mean'
+    z_prior.var: '[N,D] conditional prior variance'
+    attack_bike_prof: optional baseline acceleration/control profile
+  default_dimensions:
+    PT: 4
+    FT: 12
+    state_past: 6
+    state_future: 4
+    latent_D: 32
+generation_selection:
+  release_rule_based_source_split: val
+  release_rule_based_val_size: 400
+  release_rule_based_seq_interval_steps: 10
+  release_rule_based_seq_interval_seconds: 5.0
+  feasibility_prior_samples: 20
+  include_prior_mean_in_feasibility_samples: true
+  selection_bias_note: Only feasible and retained source windows are optimized/saved.
+success_rate_definitions:
+  adversarial_success: (adv_sol_success + sol_failed) / total_saved_attempted_scenarios
+  solution_success_conditional: adv_sol_success / (adv_sol_success + sol_failed)
+  total_success: adversarial_success * solution_success_conditional
+downstream:
+  clustering:
+    uses_collision_scenarios:
+    - adv_sol_success
+    - sol_failed
+    features:
+    - relative collision direction vector
+    - relative attacker heading vector
+    algorithm: KMeans
+    default_k: 10
+    random_state: 0
+  classification:
+    public_implementation: eval_adv_gen.py assigns scenarios to a precomputed clustering and semantic cluster labels
+    note: No separate public source file named accident classifier was found in the STRIVE repository search used for
+      this card.
+licensing:
+  code: MIT
+  generated_scenarios: CC-BY-NC-SA-4.0 per STRIVE README
+  upstream_dataset: nuScenes-derived; review current nuScenes terms
+profile:
+  profiler: tools/profile_generated_scenarios.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - dataset_root
+  - manifest_sha256
+  - partition_counts
+  - success_rates
+  - field_presence
+  - map_counts
+  - agent_count_stats
+  - shape_statistics
+  - attack_statistics
+  - quality_checks
+  - issues
