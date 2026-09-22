@@ -1,1 +1,149 @@
--- nuscenes yaml
+schema_version: '1.0'
+card_id: D-01
+card_type: data
+name: nuScenes Data Card for STRIVE
+version: 1.0.0
+status: complete
+scope:
+  description: nuScenes metadata, annotations, trajectories, and map expansion consumed by STRIVE
+  raw_sensor_payload_required_by_strive: false
+  primary_downstream_card: M-01
+sources:
+  strive_paper:
+    title: Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior
+    venue: CVPR 2022
+    url: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  strive_repository: https://github.com/nv-tlabs/STRIVE
+  nuscenes_official: https://www.nuscenes.org/
+  nuscenes_tutorial: https://www.nuscenes.org/tutorials/nuscenes_tutorial.html
+upstream:
+  dataset: nuScenes
+  official_scene_count: 1000
+  official_scene_duration_seconds: 20
+  official_standard_scene_splits:
+    train: 700
+    val: 150
+    test: 150
+  collection_cities:
+  - Boston
+  - Singapore
+  note: Official upstream facts; not STRIVE-effective post-filter counts.
+strive_release:
+  data_dir_default: ./data/nuscenes
+  data_version_default: trainval
+  supported_versions:
+  - trainval
+  - mini
+  nuscenes_devkit_version: 1.1.5
+  trajectory_dt_seconds: 0.5
+  trajectory_hz: 2.0
+  past_steps_default: 4
+  future_steps_default: 12
+  sequence_steps_default: 16
+  past_seconds_default: 2.0
+  future_seconds_default: 6.0
+  sequence_seconds_default: 8.0
+  main_paper_agent_types:
+  - car
+  - truck
+  supported_agent_types:
+  - car
+  - truck
+  - bus
+  - motorcycle
+  - trailer
+  - cyclist
+  - pedestrian
+  - emergency
+  - construction
+  category_mapping:
+    car:
+    - vehicle.car
+    truck:
+    - vehicle.truck
+    bus:
+    - vehicle.bus
+    motorcycle:
+    - vehicle.motorcycle
+    trailer:
+    - vehicle.trailer
+    cyclist:
+    - vehicle.bicycle
+    pedestrian:
+    - human.pedestrian
+    emergency:
+    - vehicle.emergency
+    construction:
+    - vehicle.construction
+  state_fields:
+  - x
+  - y
+  - heading_x
+  - heading_y
+  - speed
+  - heading_change_rate
+  vehicle_attribute_fields:
+  - length
+  - width
+  map:
+    observation_size_pixels: 256
+    observation_bounds_m:
+    - -17.0
+    - -38.5
+    - 60.0
+    - 38.5
+    layers:
+    - drivable_area
+    - carpark_area
+    - road_divider
+    - lane_divider
+    map_expansion_required: true
+  preprocessing:
+    flip_singapore_default: true
+    drivable_area_min_box_fraction: 0.3
+    carpark_area_max_box_fraction_exclusive: 0.3
+    missing_values: NaN with visibility masks
+    agent_presence_rule: agent must have an annotation at the final past frame for a normal sequence item
+    training_input_noise_std_release_config: 0.01
+  split_logic:
+    use_challenge_splits_default: false
+    val_size_loader_default: 200
+    trainval_default_scene_counts:
+      train: 500
+      val: 200
+      test: 150
+    trainval_default_mapping:
+      train: official nuScenes train scenes excluding first val_size scenes
+      val: first val_size official nuScenes train scenes
+      test: official nuScenes val scenes
+    randomize_val_supported_sizes:
+    - 200
+    - 400
+  release_environment:
+    python: '3.6'
+    pytorch: '1.9'
+    cuda: '11.1'
+  code_paths:
+    loader: src/datasets/nuscenes_dataset.py
+    base_config: src/utils/config.py
+    train_config: configs/train_traffic.cfg
+    test_config: configs/test_traffic.cfg
+licensing:
+  strive_code: MIT
+  nuscenes: See current official nuScenes terms
+  strive_pretrained_models_and_generated_scenarios: CC-BY-NC-SA-4.0 per STRIVE README
+profile:
+  profiler: tools/profile_nuscenes_strive.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - table_counts
+  - scene_count_by_location
+  - annotation_count_by_category
+  - instance_count_by_category
+  - scene_sample_count_summary
+  - sample_delta_seconds_summary
+  - strive_default_split_scene_counts
+  - strive_default_candidate_sequence_counts
+  - prediction_metadata
+  - quality_checks
