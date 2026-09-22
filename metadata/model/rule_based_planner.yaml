@@ -1,0 +1,176 @@
+schema_version: '1.0'
+card_id: M-02
+card_type: model
+name: STRIVE Rule-Based Planner
+implementation_class: HardcodeNuscPlanner
+version: 1.0.0
+status: complete
+relationships:
+  upstream_context:
+  - D-01
+  - D-02
+  downstream:
+  - C-02
+  - F-01
+  other_consumers:
+  - planner evaluation
+  - C-01 hardcode initialization refit
+  note: D-02 is an evaluation input rather than a dependency required to compute planner actions. M-01 is involved when
+    this planner is embedded in STRIVE generation.
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  repository_revision_documented: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  implementation: src/planners/hardcode_goalcond_nusc.py
+  base_interface: src/planners/planner.py
+  scenario_generation: src/adv_scenario_gen.py
+  planner_evaluation: src/eval_planner.py
+  adv_config: configs/adv_gen_rule_based.cfg
+  eval_config: configs/eval_planner.cfg
+model:
+  type: rule-based reactive lane-graph planner
+  learned_weights: false
+  receding_horizon: true
+  default_ego_index: 0
+  output_state:
+  - x
+  - y
+  - heading_x
+  - heading_y
+  internal_state:
+  - x
+  - y
+  - heading
+  - speed
+  - length
+  - width
+map_and_lane:
+  heading_match_threshold_degrees_default: 20.0
+  position_match_threshold_m_default: 2.0
+  lane_ds_m: 0.4
+  lane_sig_m: 3.5
+  sbuffer_m: 4.0
+  no_lane_fallback: constant heading spline
+  ego_uses_first_prediction_spline: true
+surrounding_prediction:
+  interaction_distance_m_default: 70.0
+  speed_factors_default:
+  - 0.5
+  - 1.0
+  acceleration_factors_default:
+  - 0.5
+  prediction_dt_s: 0.2
+  prediction_steps: 25
+  prediction_horizon_s: 5.0
+  external_future_trajectories_reactive_to_ego: false
+candidate_generation:
+  planner_acceleration_factors_default:
+  - 1.0
+  planner_speed_grid_size_default: 5
+  two_stage_speed_grid: true
+  profiles_per_acceleration_factor_per_spline: 25
+  default_max_speed_m_per_s: 15.0
+  default_max_acceleration_m_per_s2: 3.0
+collision_scoring:
+  vehicle_approximation: 5 circles per box
+  distance: minimum circle separation
+  per_step_score: 1 + tanh(-distance * weight)
+  overlap_score: 1.0
+  weight: score_wmin + timestep_index * score_wfac
+  trajectory_aggregation: 1 - product(1 - per_step_score)
+  acceptance_rule: trajectory_score < col_plim
+  col_plim_default: 0.1
+  calibrated_probability: false
+selection:
+  no_other_agents: maximum final travel distance
+  valid_lane_match: maximum final travel distance among accepted candidates
+  no_lane_match: minimum final travel distance among accepted candidates
+  no_accepted_candidate: minimum collision score
+configs:
+  default:
+    dt: 0.2
+    preddt: 0.2
+    nsteps: 25
+    cdistang: 20.0
+    xydistmax: 2.0
+    smax: 15.0
+    accmax: 3.0
+    predsfacs: &id001
+    - 0.5
+    - 1.0
+    predafacs: &id002
+    - 0.5
+    interacdist: 70.0
+    planaccfacs: &id003
+    - 1.0
+    plannspeeds: 5
+    col_plim: 0.1
+    score_wmin: 0.7
+    score_wfac: 0.05
+  final_tuned_val_1:
+    dt: 0.2
+    preddt: 0.2
+    nsteps: 25
+    cdistang: 20.0
+    xydistmax: 2.0
+    smax: 20.0
+    accmax: 4.0
+    predsfacs: *id001
+    predafacs: *id002
+    interacdist: 70.0
+    planaccfacs: *id003
+    plannspeeds: 5
+    col_plim: 0.1
+    score_wmin: 0.3
+    score_wfac: 0.02
+  changed_parameters:
+    smax:
+      default: 15.0
+      tuned: 20.0
+    accmax:
+      default: 3.0
+      tuned: 4.0
+    score_wmin:
+      default: 0.7
+      tuned: 0.3
+    score_wfac:
+      default: 0.05
+      tuned: 0.02
+integration:
+  adv_scenario_generation_planner_name: hardcode
+  adv_scenario_generation_default_planner_cfg: default
+  actual_planner_rerun_during_c02: true
+  c01_hardcode_refit_uses_planner_rollout: true
+  eval_supports_replay_instead_of_rule_based: true
+evaluation:
+  script: src/eval_planner.py
+  planner_device: cpu
+  adversarial_input: D-02 fut_adv
+  matched_regular_supported: true
+  metric_interpolation_scale: 3
+  metrics:
+  - collision occurrence
+  - relative collision velocity
+  - mean acceleration
+  - mean forward acceleration
+  - mean lateral acceleration
+  per_scenario_csv: all_eval_results.csv
+known_release_issues:
+- id: rollout_alt_init_undefined_vehicle_atts
+  description: rollout(init_state=...) calls create_init_state(init_state, vehicle_atts, ...) but vehicle_atts is not
+    defined in the rollout signature/scope.
+  standard_callers_affected: false
+- id: heuristic_collision_probability
+  description: The planner collision score is a heuristic transformed separation score and must not be interpreted as
+    a calibrated probability.
+profile:
+  profiler: tools/profile_rule_based_planner.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - extracted_configs
+  - derived_properties
+  - implementation_behavior
+  - integration_behavior
+  - quality_checks
+  - warnings
