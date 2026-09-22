@@ -1,0 +1,1 @@
+-- component card - initialization optimization
