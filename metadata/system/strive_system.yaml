@@ -3,7 +3,7 @@ card_id: S-01
 card_type: system
 name: STRIVE
 full_name: Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior
-version: 1.0.0
+version: 1.0.1
 status: complete
 repository:
   name: nv-tlabs/STRIVE
@@ -30,6 +30,10 @@ cards:
     type: model
     name: Main Traffic Model
     path: docs/cards/models/MODEL_CARD_TRAFFIC.md
+  M-02:
+    type: model
+    name: Rule-Based Planner
+    path: docs/cards/models/MODEL_CARD_RULE_BASED_PLANNER_STRIVE.md
   C-01:
     type: component
     name: Initialization Optimization
@@ -59,21 +63,46 @@ cards:
     name: Planner Tuning
     path: docs/cards/fitted_configs/FITTED_CONFIG_CARD_PLANNER_TUNING_STRIVE.md
 dependency_graph:
-  generation_chain:
-  - D-01
-  - M-01
-  - C-01
-  - C-02
-  - C-03
-  - D-02
   analysis_chain:
   - D-02
   - M-03
   - M-04
   - F-01
   planner_evaluation_from: D-02
-  note: The M-04 to F-01 edge is an analytical/documentation relationship for the public release; the paper's multi-mode
+  note: M-02 is an executable dependency in the hardcode generation/evaluation path and is directly tuned by F-01. The
+    M-04 to F-01 edge remains analytical/documentational for the public cluster-label workflow; the paper multi-mode
     planner uses a separately described binary accident-mode classifier.
+  generation_chain_core:
+  - D-01
+  - M-01
+  - C-01
+  - C-02
+  - C-03
+  - D-02
+  hardcode_generation_chain:
+  - D-01
+  - M-01
+  - C-01
+  - M-02
+  - C-02
+  - C-03
+  - D-02
+  replay_generation_chain:
+  - D-01
+  - M-01
+  - C-01
+  - C-02
+  - C-03
+  - D-02
+  planner_dependencies:
+    C-02_hardcode:
+    - M-01
+    - M-02
+    planner_evaluation:
+    - D-02
+    - M-02
+    F-01:
+    - M-02
 data:
   source: nuScenes
   versions:
@@ -132,6 +161,10 @@ planner:
   - default
   - final_tuned_val_1
   default_rule_config_used_by_adv_gen_rule_based_cfg: default
+  model_card: M-02
+  hardcode_implementation: HardcodeNuscPlanner
+  hardcode_used_by_c02: true
+  hardcode_tuned_by_f01: true
 runtime_environment:
   readme_tested_os: Ubuntu 18.04
   python: '3.6'
@@ -154,6 +187,8 @@ known_release_specific_behaviors:
 - M-03 uses scikit-learn but requirements.txt does not pin scikit-learn.
 - Public M-04 is cluster-based scenario classification, distinct from the paper-level learned binary accident-mode classifier.
 - Public repository exposes final_tuned_val_1 but not the full paper 432-combination sweep implementation.
+- M-02 rollout(init_state=...) references undefined vehicle_atts in the released code; standard STRIVE callers reset
+  the planner and do not use this branch.
 profile:
   profiler: tools/profile_strive_system.py
   measurement_status: not_run
@@ -167,3 +202,22 @@ profile:
   - release_invariants
   - quality_checks
   - warnings
+rule_based_planner:
+  card_id: M-02
+  implementation: src/planners/hardcode_goalcond_nusc.py::HardcodeNuscPlanner
+  learned_weights: false
+  default_planner_dt_seconds: 0.2
+  default_prediction_dt_seconds: 0.2
+  default_prediction_steps: 25
+  default_prediction_horizon_seconds: 5.0
+  default_interaction_distance_m: 70.0
+  default_planner_speed_grid_size: 5
+  default_ego_speed_profiles_per_accel_factor: 25
+  vehicle_collision_approximation: 5 circles per vehicle box
+  trajectory_collision_score: 1 - product(1 - per_step_score)
+  collision_score_calibrated_probability: false
+  released_configs:
+  - default
+  - final_tuned_val_1
+  known_issue: rollout(init_state=...) references undefined vehicle_atts in the released code; standard STRIVE callers
+    reset the planner and do not rely on this branch.

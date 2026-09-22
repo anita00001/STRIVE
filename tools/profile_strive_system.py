@@ -58,6 +58,7 @@ CARD_PATHS = [
     "docs/cards/system/SYSTEM_CARD_STRIVE.md",
     "docs/cards/data/DATA_CARD_NUSCENES_STRIVE.md",
     "docs/cards/models/MODEL_CARD_TRAFFIC.md",
+    "docs/cards/models/MODEL_CARD_RULE_BASED_PLANNER_STRIVE.md",
     "docs/cards/components/COMPONENT_CARD_INITIALIZATION_OPTIMIZATION.md",
     "docs/cards/components/COMPONENT_CARD_ADVERSARIAL_OPTIMIZATION.md",
     "docs/cards/components/COMPONENT_CARD_SOLUTION_OPTIMIZATION.md",
@@ -71,6 +72,7 @@ METADATA_PATHS = [
     "metadata/system/strive_system.yaml",
     "metadata/data/nuscenes_strive.yaml",
     "metadata/models/traffic_model.yaml",
+    "metadata/models/rule_based_planner.yaml",
     "metadata/components/initialization_optimization.yaml",
     "metadata/components/adversarial_optimization.yaml",
     "metadata/components/solution_optimization.yaml",
@@ -232,6 +234,19 @@ def inspect_release_invariants(root):
             "TUNED_VAL_FINAL_1" in planner_src
             and "final_tuned_val_1" in planner_src
         ),
+        "planner_five_circle_scoring_present": (
+            "circles = np.empty((B, NA, 5, 3))" in planner_src
+            and "prob = 1.0 - np.product(1.0 - probs)" in planner_src
+        ),
+        "planner_default_25_speed_profiles_derivable": (
+            "'plannspeeds' : 5" in planner_src
+            and "for s1 in np.linspace(sbot, stop, NS)" in planner_src
+            and "for s2 in np.linspace(sbot, stop, NS)" in planner_src
+        ),
+        "planner_alt_init_undefined_vehicle_atts_issue_present": (
+            "if init_state is not None:" in planner_src
+            and "self.create_init_state(init_state, vehicle_atts, self.B, self.batch_mask)" in planner_src
+        ),
         "readme_models_scenarios_cc_by_nc_sa_4": (
             "CC-BY-NC-SA-4.0" in readme
         ),
@@ -322,7 +337,7 @@ def main():
     invariants = inspect_release_invariants(root)
 
     expected_card_ids = {
-        "S-01", "D-01", "M-01", "C-01", "C-02",
+        "S-01", "D-01", "M-01", "M-02", "C-01", "C-02",
         "C-03", "D-02", "M-03", "M-04", "F-01",
     }
 
@@ -402,6 +417,8 @@ def main():
         "measurement_notes": [
             "This is a static system profiler; it does not train M-01 or run C-01/C-02/C-03.",
             "A missing invariant may indicate source drift or a profiler pattern that needs updating; inspect before concluding behavior changed.",
+            "M-02 HardcodeNuscPlanner is an explicit runtime dependency of the hardcode C-02 path and a direct target of F-01 tuning.",
+            "The released M-02 rollout(init_state=...) branch references undefined vehicle_atts; standard callers do not use it.",
             "M-04 public-repo classification is cluster-based and is distinct from the paper-level learned binary accident-mode classifier.",
             "Paper-level planner-tuning results and the 432-combination sweep are not dynamically reproduced by this profiler.",
             "Generated scenario/model licensing is distinct from the MIT source-code license.",
