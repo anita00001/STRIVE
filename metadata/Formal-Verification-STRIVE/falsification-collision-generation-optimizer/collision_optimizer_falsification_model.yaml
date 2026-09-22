@@ -1,0 +1,148 @@
+schema_version: '1.0'
+card_id: A3-M-01
+card_type: formal_assurance_model
+name: STRIVE Collision-Generation Optimizer Falsification
+version: 1.0.0
+status: complete_specification
+falsification_status: not_run
+confirmed_counterexamples: []
+assurance_approach: Specification-driven falsification of the collision-generation optimizer
+target:
+  repository: nv-tlabs/STRIVE
+  documented_revision: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  components:
+  - M-01
+  - C-01
+  - C-02
+  - C-03
+  rule_based_component: M-02
+  input_data: D-01
+  generated_output: D-02
+pipeline:
+  core:
+  - D-01
+  - M-01
+  - C-01
+  - C-02
+  - C-03
+  - D-02
+  rule_based:
+  - D-01
+  - M-01
+  - C-01
+  - M-02
+  - C-02
+  - C-03
+  - D-02
+  replay_bypasses_m02: true
+current_project_state:
+  specification_registry_frozen: false
+  external_evaluator_frozen: false
+  falsification_tool_selected: false
+  falsification_runs_executed: false
+concept_properties:
+- id: TTC-01
+  concept: TTC > 1.5 s
+  threshold: 1.5
+  units: s
+  full_temporal_semantics: null
+- id: SEP-01
+  concept: d_ego > d_min
+  threshold: d_min
+  units: m
+  full_temporal_semantics: null
+candidate_properties:
+- TTC-01
+- SEP-01
+- COLL-01
+c01:
+  initialization: posterior mean
+  initial_fit_iterations: 75
+  initial_fit_learning_rate: 0.1
+  rule_based_second_fit_iterations: 100
+  rule_based_second_fit_learning_rate: 0.05
+c02:
+  role: native adversarial collision search
+  learning_rate: 0.05
+  rule_based_iterations: 200
+  replay_iterations: 300
+  early_stopping: false
+  native_final_success: planner-vs-other polygon collision
+  native_collision_iou_threshold: 0.02
+  native_collision_buffer_for_loss: 0.1
+  search_is_complete: false
+  native_success_equals_external_spec_violation: false
+c03:
+  role: operational search for collision-free planner response
+  native_collision_buffer: 0.5
+  success_requires:
+  - no planner-other collision
+  - no planner-environment collision
+  success_is_formal_solvability_proof: false
+  failure_is_formal_unsolvability_proof: false
+planner_paths:
+  replay:
+    ego_future: recorded future
+    planner_reacts_to_generated_traffic: false
+  rule_based:
+    planner: M-02 HardcodeNuscPlanner
+    planner_reacts_to_generated_traffic: true
+    planning_dt_seconds: 0.2
+traffic_timebase:
+  m01_dt_seconds: 0.5
+formal_falsification_semantics:
+  counterexample: reloadable STRIVE-generated trajectory independently confirmed to violate the exact versioned external safety
+    specification
+  no_counterexample_found_means_safe: false
+  native_strive_success_is_candidate_evidence: true
+  independent_property_replay_required: true
+required_specification_fields:
+- property_id
+- version
+- signal definition
+- agent scope
+- thresholds
+- units
+- temporal semantics
+- horizon
+- interpolation
+- vehicle geometry
+- numeric tolerance
+- evaluator revision/hash
+- source/rationale
+search_variables:
+- target/planner-related M-01 latent variables
+- other-agent M-01 latent variables
+- selected attack agent
+recommended_outcomes:
+- counterexample
+- no_counterexample_found
+- invalid_candidate
+- timeout
+- error
+validation_requirements:
+- reproduce native STRIVE generation before modification
+- unit-test each external specification evaluator
+- validate geometry semantics
+- validate cross-timebase interpolation
+- replay every final counterexample from serialized trajectory
+- cross-tab native STRIVE and external specification outcomes
+limitations:
+- Falsification is incomplete; no violation found is not proof of safety.
+- C-02 is nonconvex local optimization and may miss violations.
+- Search coverage inherits M-01 learned-prior bias.
+- Counterexamples are planner/configuration-specific.
+- TTC/separation examples are incomplete until exact semantics are frozen.
+- Discrete-time evaluation can miss between-sample violations.
+- Generated counterexamples are synthetic stress tests, not real-world frequency estimates.
+- C-03 does not provide a global solvability/unsolvability proof.
+relationships:
+  companion_data_card: A3-D-01
+  system: S-01
+  other_assurance_approaches:
+  - A1 traffic-model verification
+  - A2 accident-classifier verification
+profile:
+  profiler: tools/profile_collision_optimizer_falsification.py
+  measurement_status: not_run
+  measured: null
