@@ -1,0 +1,104 @@
+schema_version: '1.0'
+card_id: M-04
+card_type: model
+name: STRIVE Accident / Scenario Classifier
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-02
+  - M-03
+  downstream:
+  - F-01
+  downstream_relationship_note: Analytical/documentation dependency. No direct public code path was identified that feeds
+    M-04 class labels into planner tuning.
+sources:
+  repository: https://github.com/nv-tlabs/STRIVE
+  repository_revision_documented: b708951f8665c97a1de9ed93b4ed3f58dd8cbf5d
+  paper: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  classification_implementation: src/eval_adv_gen.py::assign_cluster
+  feature_implementation: src/eval_adv_gen.py::compute_coll_feat
+  fit_implementation: src/cluster_scenarios.py
+  cluster_model: data/clustering/cluster.pkl
+  cluster_labels: data/clustering/cluster_labels.txt
+classifier:
+  separate_supervised_model_present: false
+  type: M-03 KMeans hard assignment plus ordered semantic label lookup
+  prediction_call: clustering.predict(scene_feats)
+  feature_dimension: 4
+  feature_order:
+  - collision_direction_x
+  - collision_direction_y
+  - attacker_heading_x
+  - attacker_heading_y
+  interpolation_scale: 5
+  collision_selection: earliest interpolated planner-other collision
+  class_count: 10
+  hard_label_only_in_public_output: true
+  calibrated_probability_output: false
+classes:
+  ordered_by_index:
+  - Merge from Right
+  - Head On
+  - Behind
+  - Cutoff Left & Front
+  - T-Bone Left
+  - Front from Right
+  - Merge from Left
+  - T-Bone Right
+  - Cutoff Right
+  - Front from Left
+  semantic_names_human_authored: true
+  index_origin: M-03 cluster index
+input:
+  eligible_partitions:
+  - adv_sol_success
+  - sol_failed
+  collision_required: true
+  required_feature_fields:
+  - lw
+  - fut_adv
+  - dt
+  planner_index: 0
+training:
+  separate_m04_training: false
+  decision_regions_inherited_from: M-03
+  public_m03_source_size_description: over 400 scenarios
+  public_m03_source_planners: many versions of the rule-based planner
+  public_m03_source_data: various subsets of nuScenes
+inference:
+  numeric_prediction: KMeans.predict
+  semantic_lookup: cluster_labels[predicted_index]
+  csv_columns:
+  - scene
+  - cluster_idx
+  - cluster_name
+  public_outputs:
+  - adv_sol_success_labels.csv
+  - sol_failed_labels.csv
+  - scene_distrib.png
+reproducibility:
+  model_and_label_file_must_be_paired: true
+  scikit_learn_pinned_in_public_requirements: false
+  pickle_warning: Only load trusted cluster.pkl files; Python pickle can execute code.
+  recommended_identity_fields:
+  - cluster.pkl sha256
+  - cluster_labels.txt sha256
+  - STRIVE revision
+  - scikit-learn version
+  - KMeans parameters
+planner_tuning_relationship:
+  direct_public_code_wiring_found: false
+  supported_use: Class distributions can inform human analysis or stratified planner-tuning decisions.
+profile:
+  profiler: tools/profile_accident_classifier.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - source_files
+  - classification_behavior
+  - feature_contract
+  - labels
+  - artifact
+  - classification_csvs
+  - quality_checks

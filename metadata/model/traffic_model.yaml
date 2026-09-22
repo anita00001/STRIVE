@@ -1,0 +1,167 @@
+schema_version: '1.0'
+card_id: M-01
+card_type: model
+name: STRIVE Main Traffic Model
+version: 1.0.0
+status: complete
+relationships:
+  upstream:
+  - D-01
+  downstream:
+  - C-01
+  - C-02
+  - C-03
+sources:
+  paper:
+    title: Generating Useful Accident-Prone Driving Scenarios via a Learned Traffic Prior
+    venue: CVPR 2022
+    url: https://openaccess.thecvf.com/content/CVPR2022/html/Rempe_Generating_Useful_Accident-Prone_Driving_Scenarios_via_a_Learned_Traffic_Prior_CVPR_2022_paper.html
+  repository: https://github.com/nv-tlabs/STRIVE
+model:
+  family: graph conditional variational autoencoder
+  role: learned multi-agent traffic prior
+  implementation: src/models/traffic_model.py
+  interaction_implementation: src/models/interaction_net.py
+  loss_implementation: src/losses/traffic_model.py
+  state_dimension: 6
+  state_fields:
+  - x
+  - y
+  - heading_x
+  - heading_y
+  - speed
+  - heading_change_rate
+  vehicle_attribute_dimension: 2
+  vehicle_attribute_fields:
+  - length
+  - width
+  dt_seconds: 0.5
+  past_steps: 4
+  future_steps: 12
+  default_agent_types:
+  - car
+  - truck
+  trajectory_encoder_default: mlp
+  map_feature_size: 64
+  past_feature_size: 64
+  future_feature_size: 64
+  latent_size: 32
+  output_bicycle_default: true
+  map_encoder:
+    observation_size_pixels: 256
+    default_input_channels: 4
+    kernels:
+    - 7
+    - 5
+    - 5
+    - 3
+    - 3
+    - 3
+    strides:
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    - 2
+    filters:
+    - 16
+    - 32
+    - 64
+    - 64
+    - 128
+    - 128
+    normalization: GroupNorm(1, channels)
+    activation: ReLU
+  past_encoder:
+    type: MLP
+    hidden_sizes:
+    - 128
+    - 128
+    - 128
+    output_size: 64
+  future_encoder:
+    type: MLP
+    hidden_sizes:
+    - 128
+    - 128
+    - 128
+    output_size: 64
+  interaction:
+    network: SceneInteractionNet
+    message_passing_rounds_default: 1
+    aggregation: max
+    prior_interaction_node_size: 128
+    posterior_interaction_node_size: 128
+    decoder_interaction_node_size: 64
+    edge_geometry_fields:
+    - x
+    - y
+    - heading_x
+    - heading_y
+  latent:
+    distribution: diagonal Gaussian
+    parameterization:
+    - mean
+    - log_variance
+    dimension: 32
+    variance_transform: exp(log_variance)
+    sampling: reparameterized
+  decoder:
+    autoregressive: true
+    memory:
+      type: GRU
+      layers: 3
+      input_size: 4
+      hidden_size: 64
+    output_size_per_step_with_bicycle: 2
+training:
+  script: src/train_traffic.py
+  config: configs/train_traffic.cfg
+  optimizer: Adam
+  epochs: 200
+  batch_size: 4
+  learning_rate: 1.0e-05
+  weight_decay_default: 0.0
+  validation_every_epochs_default: 3
+  checkpoint_every_epochs_default: 3
+  data_noise_std: 0.01
+  losses:
+    reconstruction_weight: 1.0
+    kl_final_weight: 0.004
+    kl_anneal_end_epoch: 20
+    vehicle_collision_prior_weight: 0.05
+    environment_collision_prior_weight: 0.1
+evaluation:
+  script: src/test_traffic.py
+  config: configs/test_traffic.cfg
+  checkpoint_default: ./model_ckpt/traffic_model.pth
+  sample_count: 10
+  sample_future_steps: 12
+  sample_displacement_error: true
+  sample_collision_rate: true
+  sample_visualization: true
+  reconstruction_collision_rate: false
+  use_challenge_splits_default: false
+release_environment:
+  python: '3.6'
+  pytorch: 1.9.0+cu111
+  cuda: '11.1'
+  torch_geometric: 1.7.1
+  numpy: 1.19.5
+  nuscenes_devkit: 1.1.5
+licensing:
+  code: MIT
+  pretrained_model: CC-BY-NC-SA-4.0 per STRIVE README
+  upstream_dataset: See nuScenes terms
+profile:
+  profiler: tools/profile_traffic_model.py
+  measurement_status: not_run
+  measured: null
+  expected_measured_fields:
+  - checkpoint
+  - checkpoint_metadata
+  - state_dict
+  - train_config
+  - test_config
+  - quality_checks
